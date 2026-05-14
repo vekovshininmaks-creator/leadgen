@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Переписка • Leadgen{% endblock %}
+{% block page_id %}chats{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Переписка</h2>
+    <p class="muted" id="chatsLlmHint">Загрузка…</p>
+    <p class="muted">
+      Активные лиды по журналу <code>sent_leads.csv</code> (последние события по каждому пользователю).
+      Список каналов мониторинга — в
+      <a class="link" href="/tools/discover">Поиск каналов</a>.
+      LLM и Telegram — в
+      <a class="link" href="/tools/contacts/schedule#connections">Настройки и лимиты → Подключения</a>.
+    </p>
+    <div class="panel-sub">
+      <h3>Контекст для генерации (опционально)</h3>
+      <p class="muted">Вставьте фрагмент сообщения лида из чата — модель учтёт его в черновике первого ЛС.</p>
+      <textarea id="chatsLeadSnippet" class="textarea-sm" placeholder="Текст запроса лида…"></textarea>
+    </div>
+    <div class="table" id="chatsTable"></div>
+    <div class="panel-sub">
+      <h3>Черновик от LLM</h3>
+      <pre id="chatsLlmOutput" class="textarea-sm">—</pre>
+    </div>
+  </section>
+{% endblock %}

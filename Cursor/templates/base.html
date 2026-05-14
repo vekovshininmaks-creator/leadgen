@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>{% block title %}Leadgen Server Console{% endblock %}</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("leadgen_theme");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        else document.documentElement.setAttribute("data-theme", "dark");
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/styles.css?v=33">
+</head>
+<body data-page="{% block page_id %}base{% endblock %}">
+  <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <p>Server Console</p>
+        <a href="/" class="brand-title-link"><h1>Leadgen</h1></a>
+        <p class="meta app-version" title="Версия веб-инструмента">v{{ app_version }}</p>
+      </div>
+
+      <a class="nav-link nav-auth-required {% if active == 'home' %}active{% endif %}" href="/">Рабочий стол</a>
+      <a class="nav-link nav-auth-required {% if active == 'docs_bot' %}active{% endif %}" href="/docs/bot">Справка: бот</a>
+
+      <details class="nav-nested nav-auth-required" {% if active in ('discover', 'contacts_bot', 'contacts_schedule', 'contacts_leads', 'web_leads', 'offers', 'conversations', 'inbox', 'calls') %}open{% endif %}>
+        <summary>Воронка</summary>
+        <a class="nav-sublink {% if active == 'discover' %}active{% endif %}" href="/tools/discover">Поиск каналов</a>
+        <details class="nav-nested-2" {% if active in ('contacts_bot', 'contacts_schedule', 'contacts_leads') %}open{% endif %}>
+          <summary>Контакты (бот)</summary>
+          <a class="nav-sublink {% if active == 'contacts_bot' %}active{% endif %}" href="/tools/contacts/bot">Бот</a>
+          <a class="nav-sublink {% if active == 'contacts_schedule' %}active{% endif %}" href="/tools/contacts/schedule">Настройки и лимиты</a>
+          <a class="nav-sublink {% if active == 'contacts_leads' %}active{% endif %}" href="/tools/contacts/leads">Лиды</a>
+        </details>
+        <a class="nav-sublink {% if active == 'web_leads' %}active{% endif %}" href="/tools/web-leads">Лиды по сайтам</a>
+        <a class="nav-sublink {% if active == 'offers' %}active{% endif %}" href="/tools/offers">Офферы <span id="navPendingOutreachBadge" class="nav-badge hidden" title="Ожидают подтверждения">0</span></a>
+        <a class="nav-sublink {% if active == 'conversations' %}active{% endif %}" href="/tools/conversations">Воронка CRM</a>
+        <a class="nav-sublink {% if active == 'inbox' %}active{% endif %}" href="/tools/inbox">Переписка</a>
+        <a class="nav-sublink {% if active == 'calls' %}active{% endif %}" href="/tools/calls">Созвоны</a>
+      </details>
+
+      <a class="nav-link nav-auth-required {% if active == 'analytics' %}active{% endif %}" href="/analytics">Аналитика</a>
+
+      <details class="nav-nested nav-auth-required" {% if active in ('billing', 'admin', 'security') %}open{% endif %}>
+        <summary>Аккаунт</summary>
+        <a class="nav-sublink {% if active == 'billing' %}active{% endif %}" href="/account/billing">Подписка</a>
+        <a class="nav-sublink {% if active == 'security' %}active{% endif %}" href="/account/security">Безопасность</a>
+        <a class="nav-sublink nav-admin {% if active == 'admin' %}active{% endif %}" href="/account/admin">Admin</a>
+      </details>
+
+      <div class="sidebar-tg-code nav-auth-required">
+        <p class="muted sidebar-tg-code-title">Код / пароль Telegram</p>
+        <p class="muted sidebar-tg-code-hint">
+          Сначала код входа из Telegram (SMS/приложение). Если включена двухэтапная проверка — после кода пришлите сюда же <strong>облачный пароль 2FA</strong> (не код из SMS).
+        </p>
+        <div class="row sidebar-tg-code-row">
+          <input
+            id="globalBotTelegramCode"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="код входа или пароль 2FA"
+          >
+          <button type="button" id="globalBotTelegramCodeBtn" class="secondary">Отправить</button>
+        </div>
+        <p id="globalBotTelegramCodeMsg" class="form-error hidden" role="alert"></p>
+      </div>
+
+      <details>
+        <summary>Система</summary>
+        <div class="meta" id="serverMeta">Сервер: ...</div>
+        <div class="meta" id="healthMeta">Health: ...</div>
+      </details>
+
+      <div class="sidebar-footer nav-auth-required" data-sidebar-account>
+        <div class="sb-user-row">
+          <img id="sbAvatar" class="sb-avatar hidden" width="40" height="40" alt="">
+          <div class="sb-user-col">
+            <div class="meta strong sb-truncate" id="sbUserEmail" title="">—</div>
+            <div class="meta" id="sbOrgRole">Роль: —</div>
+          </div>
+        </div>
+        <div class="meta" id="sbPlanLine">Тариф: —</div>
+        <p id="sbOrgHint" class="meta sb-org-hint hidden" role="status"></p>
+        <div class="sb-limits" id="sbLimitsBlock">
+          <div class="meta sb-lim-t">Лимиты тарифа</div>
+          <div class="meta" id="sbLimChats">Чаты: —</div>
+          <div class="meta" id="sbLimDay">ЛС в сутки: —</div>
+          <div class="meta" id="sbLimMonth">ЛС в месяц: —</div>
+          <div class="meta" id="sbLimInt">Мониторинг: —</div>
+        </div>
+        <div class="meta" id="sbLlmLine">LLM: —</div>
+        <button type="button" class="secondary sb-logout" id="sbLogoutBtn">Выйти</button>
+      </div>
+    </aside>
+
+    <div class="main-wrap">
+      <header class="topbar">
+        <button type="button" class="icon-btn" id="sidebarOpenBtn" aria-label="Открыть меню" title="Меню">☰</button>
+        <div class="topbar-title">Панель</div>
+        <div class="topbar-spacer" aria-hidden="true"></div>
+        <button
+          type="button"
+          class="secondary theme-toggle"
+          id="themeToggleBtn"
+          aria-pressed="true"
+          title="Светлая тема"
+        >☀</button>
+        <div class="topbar-auth" id="headerAuth">
+          <button type="button" id="headerLoginBtn" class="secondary">Войти</button>
+        </div>
+      </header>
+      <main class="main">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <div id="adminOrgDebugHost" class="admin-org-debug-host hidden" aria-hidden="true">
+    <button
+      type="button"
+      id="adminOrgDebugFab"
+      class="admin-org-debug-fab"
+      aria-label="Логи организации (admin)"
+      aria-expanded="false"
+      title="Лог бота (только админ org)"
+    >⎘</button>
+    <div id="adminOrgDebugPanel" class="admin-org-debug-panel hidden" role="dialog" aria-label="Лог бота организации" aria-modal="true">
+      <div id="adminOrgDebugDrag" class="admin-org-debug-head">
+        <div class="admin-org-debug-head-text">
+          <h2 class="admin-org-debug-title">Лог организации</h2>
+          <p id="adminOrgDebugHint" class="admin-org-debug-sub muted">—</p>
+        </div>
+        <div class="row admin-org-debug-actions">
+          <label class="admin-org-debug-live-label muted">
+            <input type="checkbox" id="adminOrgDebugLive" checked /> Авто
+          </label>
+          <button type="button" class="secondary" id="adminOrgDebugClear">Очистить вид</button>
+          <button type="button" class="secondary" id="adminOrgDebugCopy">Копировать</button>
+          <button type="button" class="secondary" id="adminOrgDebugRefresh">Обновить</button>
+          <button type="button" class="secondary" id="adminOrgDebugClose" aria-label="Закрыть">×</button>
+        </div>
+      </div>
+      <pre id="adminOrgDebugPre" class="admin-org-debug-pre" tabindex="0"></pre>
+    </div>
+  </div>
+
+  <div id="uiDebugHost" class="ui-debug-host" aria-hidden="false">
+    <button
+      type="button"
+      id="uiDebugFab"
+      class="ui-debug-fab"
+      aria-label="UI debug log"
+      aria-expanded="false"
+      title="UI debug log (для тестирования)"
+    >🐞</button>
+    <div id="uiDebugPanel" class="ui-debug-panel hidden" role="dialog" aria-label="UI debug log" aria-modal="true">
+      <div id="uiDebugDrag" class="ui-debug-head">
+        <div class="ui-debug-head-text">
+          <h2 class="ui-debug-title">UI debug log</h2>
+          <p id="uiDebugHint" class="ui-debug-sub muted">Клики (цепочка DOM), переходы по меню (<code>nav menu</code>), загрузка раздела (<code>page enter</code>), строки серверного <code>bot.log</code> с префиксом <code>bot.log |</code> (пока включено «Вкл»), отправки форм, поля, API, ошибки JS. Лог в localStorage по пользователю. «Очистить» сбрасывает буферы и память дедупа bot.log.</p>
+        </div>
+        <div class="row ui-debug-actions">
+          <label class="ui-debug-live-label muted" title="Включить сбор подробных логов">
+            <input type="checkbox" id="uiDebugEnabled" checked /> Вкл
+          </label>
+          <button type="button" class="secondary" id="uiDebugClear">Очистить</button>
+          <button type="button" class="secondary" id="uiDebugCopy" title="JSON с метаданными">Копировать JSON</button>
+          <button type="button" class="secondary" id="uiDebugCopyText" title="Только строки лога">Копировать текст</button>
+          <button type="button" class="secondary" id="uiDebugDownload">Скачать</button>
+          <button type="button" class="secondary" id="uiDebugClose" aria-label="Закрыть">×</button>
+        </div>
+      </div>
+      <pre id="uiDebugPre" class="ui-debug-pre" tabindex="0"></pre>
+    </div>
+  </div>
+
+  <div class="leadgen-assistant-host nav-auth-required hidden" id="leadgenAssistantHost" aria-hidden="true">
+    <button type="button" id="leadgenAssistantFab" class="leadgen-assistant-fab" aria-label="Открыть помощник" aria-expanded="false" title="Помощник">?</button>
+    <aside id="leadgenAssistantPanel" class="leadgen-assistant-panel hidden" role="dialog" aria-label="Помощник по интерфейсу" aria-modal="true">
+      <div class="leadgen-assistant-head">
+        <div>
+          <h2 class="leadgen-assistant-title">Помощник</h2>
+          <p class="leadgen-assistant-sub">Вопросы по разделам консоли. Ответ через LLM из настроек организации или краткая подсказка.</p>
+        </div>
+        <button type="button" class="secondary leadgen-assistant-close" id="leadgenAssistantClose" aria-label="Закрыть">×</button>
+      </div>
+      <div class="leadgen-assistant-messages" id="leadgenAssistantMessages"></div>
+      <div class="leadgen-assistant-composer">
+        <textarea id="leadgenAssistantInput" class="leadgen-assistant-input" placeholder="Ваш вопрос…" rows="2"></textarea>
+        <div class="row leadgen-assistant-actions">
+          <button type="button" id="leadgenAssistantSend">Отправить</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  {% block page_scripts %}{% endblock %}
+  <script src="/static/app.js?v=70"></script>
+</body>
+</html>

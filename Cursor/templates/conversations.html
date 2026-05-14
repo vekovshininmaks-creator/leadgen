@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Воронка CRM • Leadgen{% endblock %}
+{% block page_id %}conversations{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Воронка CRM (переписки)</h2>
+    <p class="muted">
+      Записи в SQLite: статус воронки, история заметок и черновиков LLM. Это дополняет
+      <a class="link" href="/tools/offers">очередь офферов</a> и
+      <a class="link" href="/tools/inbox">журнал лидов</a>.
+    </p>
+    <p id="convError" class="form-error hidden" role="alert"></p>
+    <div class="row" style="flex-wrap: wrap; gap: 8px; align-items: center;">
+      <button type="button" id="convRefreshBtn" class="secondary">Обновить</button>
+    </div>
+    <div class="table-scroll" style="margin-top: 12px;">
+      <table class="leads-table" id="convTable" aria-label="Переписки CRM">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Статус</th>
+            <th>Этап</th>
+            <th>Лид</th>
+            <th>Источник</th>
+            <th>История (фрагмент)</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="convTbody"></tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

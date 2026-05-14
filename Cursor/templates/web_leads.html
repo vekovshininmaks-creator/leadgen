@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Лиды по сайтам • Leadgen{% endblock %}
+{% block page_id %}web_leads{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Лиды по сайтам</h2>
+    <p class="muted">
+      Поиск по поисковой выдаче (SerpAPI / Google) или импорт списка доменов. Скрипт сам тянет
+      главную и страницу контактов, достаёт email/телефон/Telegram/WhatsApp и складывает в воронку.
+    </p>
+
+    <p id="webLeadsKeyHint" class="muted hidden" role="status">
+      Ключ SerpAPI не задан — поиск по выдаче выключен. Импорт CSV/доменов работает в любом случае.
+      Сохраните ключ ниже и страница перезагрузится.
+    </p>
+
+    <div class="panel-sub">
+      <h3>Подключения</h3>
+      <p class="muted" style="margin:0 0 10px;">
+        <a class="link" href="https://serpapi.com" target="_blank" rel="noopener">SerpAPI</a>
+        — платный сервис доступа к поисковой выдаче Google (и др.). Регистрация на сайте, в личном кабинете
+        копируется поле <strong>API key</strong> и вставляется ниже. Без ключа блок «Поиск по выдаче» не вызывает SerpAPI;
+        импорт доменов/CSV работает как обычно.
+      </p>
+      <div class="form-grid">
+        <label class="muted" for="webLeadsSerpKey">SerpAPI ключ</label>
+        <input id="webLeadsSerpKey" type="password" placeholder="вставьте ключ из serpapi.com" autocomplete="off">
+      </div>
+      <div class="row">
+        <button type="button" id="webLeadsSaveKeyBtn" class="secondary">Сохранить ключ</button>
+        <span id="webLeadsKeyMsg" class="muted"></span>
+      </div>
+    </div>
+
+    <div class="panel-sub">
+      <h3>Поиск по выдаче</h3>
+      <div class="form-grid">
+        <label class="muted" for="webLeadsQuery">Запрос</label>
+        <input id="webLeadsQuery" type="text" placeholder="например: «строительство домов из бруса под ключ»">
+        <label class="muted" for="webLeadsCount">Количество результатов</label>
+        <input id="webLeadsCount" type="number" min="1" max="50" value="20">
+        <label class="muted" for="webLeadsGl">Регион (gl)</label>
+        <input id="webLeadsGl" type="text" value="ru" maxlength="5">
+      </div>
+      <div class="row">
+        <button type="button" id="webLeadsSearchBtn">Искать и парсить</button>
+        <span id="webLeadsSearchMsg" class="muted"></span>
+      </div>
+    </div>
+
+    <div class="panel-sub">
+      <h3>Импорт доменов</h3>
+      <p class="muted">Один домен в строке или через запятую/пробел. Например: <code>example.com</code></p>
+      <textarea id="webLeadsImportArea" class="textarea-sm" rows="4"
+                placeholder="example.com&#10;another-site.ru&#10;https://shop.example/..."></textarea>
+      <div class="row">
+        <button type="button" id="webLeadsImportBtn">Поставить в очередь</button>
+        <span id="webLeadsImportMsg" class="muted"></span>
+      </div>
+    </div>
+
+    <div class="panel-sub">
+      <h3>Найденные сайты</h3>
+      <div class="row">
+        <button type="button" id="webLeadsRefreshBtn" class="secondary">Обновить список</button>
+        <span id="webLeadsListMeta" class="muted"></span>
+      </div>
+      <div class="table-scroll" style="margin-top: 10px;">
+        <table class="leads-table" id="webLeadsTable" aria-label="Лиды по сайтам">
+          <thead>
+            <tr>
+              <th>Домен</th>
+              <th>Контакты</th>
+              <th>Источник</th>
+              <th>Статус</th>
+              <th>Обновлён</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="webLeadsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <p id="webLeadsError" class="form-error hidden" role="alert"></p>
+  </section>
+{% endblock %}

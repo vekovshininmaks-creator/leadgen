@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Лиды • Leadgen{% endblock %}
+{% block page_id %}leads{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Лиды</h2>
+    <p class="muted">Активные записи из <code>sent_leads.csv</code> (скрытые помечены мягким удалением). Полная выгрузка без скрытых — «Скачать CSV»; архив со скрытыми: добавьте к URL экспорта <code>?include_deleted=1</code>.</p>
+    <div class="row" style="flex-wrap: wrap; align-items: center; gap: 10px;">
+        <button type="button" class="secondary" id="leadsDownloadCsv">Скачать CSV</button>
+        <button type="button" class="secondary" id="leadsDeleteSelected">Удалить выбранные</button>
+        <button type="button" id="leadsDeleteAll">Очистить журнал</button>
+        <span class="muted" id="leadsRowHint">—</span>
+      </div>
+    <div class="leads-filters row" style="flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+      <div class="search-filter-field leads-search-field">
+        <label class="muted" for="leadsSearch">Поиск по таблице</label>
+        <input type="search" id="leadsSearch" placeholder="username, чат, текст…" autocomplete="off" class="search-niche-input" data-persist="leads.search">
+      </div>
+      <div class="search-filter-field">
+        <label class="muted" for="leadsTagFilter">Метка</label>
+        <select id="leadsTagFilter" class="search-niche-input" aria-label="Фильтр по метке лида" data-persist="leads.tag_filter">
+          <option value="">Все</option>
+          <option value="lead">Лид</option>
+          <option value="junk">Шлак</option>
+          <option value="in_progress">В работе</option>
+          <option value="wrote">Написали</option>
+          <option value="partner">Партнёр</option>
+        </select>
+      </div>
+    </div>
+    <p id="leadsError" class="form-error hidden" role="alert"></p>
+    <div class="leads-table-wrap">
+      <table class="leads-table" id="leadsTable" aria-label="Таблица лидов">
+        <thead id="leadsThead"></thead>
+        <tbody id="leadsTbody"></tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

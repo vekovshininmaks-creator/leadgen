@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Аналитика • Leadgen{% endblock %}
+{% block page_id %}analytics{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Аналитика</h2>
+    <div class="panel-sub">
+      <h3>Профиль</h3>
+      <p class="muted">Аватар показывается в левом нижнем блоке «аккаунт». Форматы: PNG, JPEG, WebP, GIF, до 2 МБ.</p>
+      <div class="row profile-avatar-row">
+        <img id="profileAvatarPreview" class="profile-avatar-preview" width="64" height="64" alt="">
+        <input id="avatarFileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+        <button type="button" id="avatarUploadBtn">Загрузить</button>
+        <button type="button" id="avatarClearBtn" class="secondary">Сбросить</button>
+      </div>
+      <p id="avatarUploadMsg" class="muted"></p>
+    </div>
+    <div class="cards" id="statsCards"></div>
+    <div class="panel-sub stats-charts-section">
+      <h3>Графики</h3>
+      <p class="muted">Строки в <code>sent_leads.csv</code> по дням (по полю <code>timestamp</code>). Справа — сравнение с потолком тарифа (чаты, личные сообщения в сутки и в месяц).</p>
+      <div class="stats-charts-grid">
+        <div class="stats-chart-box">
+          <div class="stats-chart-title">События в CSV по дням</div>
+          <canvas id="statsChartLeadsDaily" aria-label="График строк лидов по дням"></canvas>
+        </div>
+        <div class="stats-chart-box">
+          <div class="stats-chart-title">Использование vs тариф</div>
+          <canvas id="statsChartUsage" aria-label="График использования лимитов"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="kv" id="statsKv"></div>
+    <div class="row" style="margin-top: 10px; flex-wrap: wrap; gap: 10px; align-items: center;">
+      <button type="button" class="secondary" id="statsLeadsDownloadBtn">Скачать CSV лидов</button>
+      <span class="muted" style="font-size: 13px;">Та же выгрузка, что в разделе «Контакты → Лиды».</span>
+    </div>
+    <div class="kv muted" id="statsHelp"></div>
+  </section>
+{% endblock %}
+{% block page_scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+{% endblock %}
+

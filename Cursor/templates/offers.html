@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Офферы и согласование • Leadgen{% endblock %}
+{% block page_id %}offers{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Офферы и согласование отправки</h2>
+    <p class="muted">
+      Если в «Настройки и лимиты» включено <strong>«Подтверждать первое сообщение»</strong>, бот не шлёт личные сообщения сразу:
+      они попадают сюда. После одобрения запущенный бот подхватит текст из очереди (проверьте, что бот <strong>запущен</strong>).
+    </p>
+    <p class="muted">
+      Шаблоны этапов 1–3 по-прежнему в
+      <a class="link" href="/tools/contacts/schedule">Настройки и лимиты</a>.
+      Черновик можно править в таблице ниже до нажатия «Одобрить».
+    </p>
+    <p id="offersError" class="form-error hidden" role="alert"></p>
+    <div class="row" style="flex-wrap: wrap; gap: 8px; align-items: center;">
+      <button type="button" id="offersRefreshBtn" class="secondary">Обновить</button>
+      <label class="muted" for="offersStatusFilter">Статус</label>
+      <select id="offersStatusFilter" aria-label="Фильтр статуса">
+        <option value="">все</option>
+        <option value="pending" selected>ожидают</option>
+        <option value="approved">одобрены</option>
+        <option value="queued">в очереди бота</option>
+        <option value="sent">отправлены</option>
+        <option value="rejected">отклонены</option>
+      </select>
+    </div>
+    <div class="table-scroll" style="margin-top: 12px;">
+      <table class="leads-table" id="offersTable" aria-label="Очередь согласований">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Статус</th>
+            <th>Этап</th>
+            <th>Пользователь</th>
+            <th>Источник</th>
+            <th>Черновик</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="offersTbody"></tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

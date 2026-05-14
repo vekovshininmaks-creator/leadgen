@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Авторизация • Leadgen{% endblock %}
+{% block page_id %}auth{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Вход и регистрация</h2>
+    <p class="muted">Вход и выход — также в правом верхнем углу.</p>
+    <p class="muted">
+      <a href="/legal/privacy">Политика</a> ·
+      <a href="/legal/terms">Соглашение</a> ·
+      <a href="/legal/consent">Согласие</a>
+    </p>
+
+    <div class="panel-sub">
+      <h3 class="panel-sub-title">Вход</h3>
+      <p id="loginError" class="form-error hidden" role="alert"></p>
+      <div class="row">
+        <input id="loginEmail" type="email" autocomplete="username" placeholder="email">
+      </div>
+      <div class="row password-row">
+        <div class="password-field">
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="пароль">
+          <button type="button" class="secondary pwd-toggle" data-pwd-target="loginPassword" aria-label="Показать пароль">Показать</button>
+        </div>
+        <button id="loginBtn" type="button">Войти</button>
+      </div>
+      <div id="totpBlock" class="row hidden">
+        <input id="loginTotp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="код 2FA (если включён)">
+        <button id="loginTotpBtn" type="button" class="secondary">Подтвердить 2FA</button>
+      </div>
+    </div>
+
+    <div class="panel-sub">
+      <h3 class="panel-sub-title">Регистрация</h3>
+      <p id="regError" class="form-error hidden" role="alert"></p>
+      <div class="row">
+        <input id="regEmail" type="email" autocomplete="email" placeholder="email для регистрации">
+      </div>
+      <div class="row password-row">
+        <div class="password-field">
+          <input id="regPassword" type="password" autocomplete="new-password" minlength="12" placeholder="пароль (мин. 12 символов)">
+          <button type="button" class="secondary pwd-toggle" data-pwd-target="regPassword" aria-label="Показать пароль">Показать</button>
+        </div>
+        <button id="registerBtn" type="button">Зарегистрировать</button>
+      </div>
+      <div class="row">
+        <label class="row-inline">
+          <input id="regConsent" type="checkbox" />
+          <span>Я соглашаюсь с <a href="/legal/privacy" target="_blank" rel="noopener">политикой конфиденциальности</a>
+            и <a href="/legal/terms" target="_blank" rel="noopener">условиями</a> (обработка данных для аккаунта)</span>
+        </label>
+      </div>
+    </div>
+
+    <p id="authState" class="muted"></p>
+  </section>
+{% endblock %}

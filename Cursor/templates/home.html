@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Рабочий стол • Leadgen{% endblock %}
+{% block page_id %}home{% endblock %}
+{% block content %}
+  <section class="panel home-intro">
+    <h2>Рабочий стол</h2>
+    <p class="muted">Воронка: от поиска каналов до назначения созвонов. Откройте шаг в меню слева или карточку ниже. Статусы обновляются при загрузке страницы.</p>
+  </section>
+
+  <div class="tool-grid" role="navigation" aria-label="Инструменты воронки">
+    <a class="tool-card" href="/tools/discover" data-home-card="discover">
+      <div class="tool-card-kicker">Шаг 1</div>
+      <h3>Поиск каналов</h3>
+      <p>Публичный поиск, фильтры по подписчикам и активности, добавление в мониторинг.</p>
+      <span class="tool-card-status" data-home-status>—</span>
+    </a>
+    <a class="tool-card" href="/tools/contacts/bot" data-home-card="contacts">
+      <div class="tool-card-kicker">Шаг 2</div>
+      <h3>Контакты</h3>
+      <p>Бот, лимиты, лиды и журнал личных переписок.</p>
+      <span class="tool-card-status" data-home-status>—</span>
+    </a>
+    <a class="tool-card" href="/tools/offers" data-home-card="offers">
+      <div class="tool-card-kicker">Шаг 3</div>
+      <h3>Офферы</h3>
+      <p>Согласование текстов перед отправкой в личку.</p>
+      <span class="tool-card-status" data-home-status>—</span>
+    </a>
+    <a class="tool-card" href="/tools/inbox" data-home-card="inbox">
+      <div class="tool-card-kicker">Шаг 4</div>
+      <h3>Переписка</h3>
+      <p>Чаты, LLM и ответы по лидам.</p>
+      <span class="tool-card-status" data-home-status>—</span>
+    </a>
+    <a class="tool-card" href="/tools/calls" data-home-card="calls">
+      <div class="tool-card-kicker">Шаг 5</div>
+      <h3>Созвоны</h3>
+      <p>Назначение и учёт звонков (база в SQLite).</p>
+      <span class="tool-card-status" data-home-status>—</span>
+    </a>
+  </div>
+
+  <section class="panel">
+    <h3 class="panel-sub-title">Автоматизация и учёт</h3>
+    <div class="row" style="margin-bottom: 0;">
+      <a class="nav-link-inline" href="/tools/contacts/bot">Управление ботом</a>
+      <a class="nav-link-inline" href="/tools/contacts/schedule">Настройки и лимиты</a>
+      <a class="nav-link-inline" href="/analytics">Аналитика</a>
+      <a class="nav-link-inline" href="/account/billing">Подписка</a>
+    </div>
+  </section>
+
+  <section class="panel home-bot-guide">
+    <details class="home-bot-details">
+      <summary><strong>Кратко: как завести бота и воронку</strong></summary>
+      <ol class="home-bot-steps muted">
+        <li><strong>Настройки и лимиты</strong> — вкладка «Подключения»: <code>api_id</code> / <code>api_hash</code> с my.telegram.org, при необходимости LLM. Вкладка «Воронка»: ключевые слова, шаблоны этапов 1–3, лимиты и расписание. При первом запуске включите «тестовый режим», если не хотите реальные ЛС.</li>
+        <li><strong>Код из Telegram</strong> — после «Старт» введите код в левой колонке (доступен с любой страницы).</li>
+        <li><strong>Поиск каналов</strong> — добавьте чаты в мониторинг или синхронизируйте диалоги с страницы бота.</li>
+        <li><strong>Управление ботом</strong> — старт/стоп, журнал прохода, последние лиды.</li>
+        <li><strong>Лиды</strong> — таблица и выгрузка <code>sent_leads.csv</code>.</li>
+        <li><strong>Офферы</strong> — если включено согласование, тексты этапов попадают в очередь перед отправкой.</li>
+        <li><strong>Переписка / Созвоны</strong> — работа с ответами и назначение звонков.</li>
+      </ol>
+      <p class="muted" style="margin-top: 10px;"><a class="link" href="/docs/bot">Полная справка на отдельной странице →</a></p>
+    </details>
+  </section>
+{% endblock %}

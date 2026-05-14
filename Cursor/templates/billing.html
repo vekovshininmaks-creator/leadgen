@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Подписка • Leadgen{% endblock %}
+{% block page_id %}billing{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Подписка</h2>
+    <div class="cards" id="planCards"></div>
+    <div class="kv" id="billingKv"></div>
+    <p class="muted" id="billingHint"></p>
+    <div class="panel-sub">
+      <h3>История платежей</h3>
+      <p class="muted" id="billingPaymentsEmpty" style="display:none;">Пока нет записей. Оплата через ЮKassa (сумма для клиента без доп. комиссии).</p>
+      <div class="table-scroll">
+        <table class="leads-table" id="billingPaymentsTable" aria-label="Платежи">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Тариф</th>
+              <th>Сумма, ₽</th>
+              <th>Статус</th>
+              <th>Создан</th>
+              <th>Оплачен</th>
+            </tr>
+          </thead>
+          <tbody id="billingPaymentsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel-sub">
+      <h3>Тарифы</h3>
+      <div class="table" id="plansTable"></div>
+      <p class="muted">Оплата картой через ЮKassa. В личном кабинете ЮKassa укажите URL уведомлений: <code>/api/billing/webhook/yookassa</code> на вашем домене.</p>
+    </div>
+  </section>
+{% endblock %}
+

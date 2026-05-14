@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Созвоны • Leadgen{% endblock %}
+{% block page_id %}calls{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Созвоны</h2>
+    <p class="muted">
+      Базовый учёт звонков с лидами. Данные в SQLite (<code>calls</code>). Позже можно связать с CRM и напоминаниями.
+    </p>
+    <p id="callsError" class="form-error hidden" role="alert"></p>
+    <div class="panel-sub">
+      <h3>Новый созвон</h3>
+      <div class="form-grid">
+        <label class="muted" for="callLeadUserId">User ID лида</label>
+        <input id="callLeadUserId" type="text" inputmode="numeric" placeholder="123456789" autocomplete="off">
+        <label class="muted" for="callLeadUsername">@username (опц.)</label>
+        <input id="callLeadUsername" type="text" placeholder="username" autocomplete="off">
+        <label class="muted" for="callScheduledAt">Когда (ISO или текст)</label>
+        <input id="callScheduledAt" type="text" placeholder="2026-04-28T15:00:00" autocomplete="off">
+        <label class="muted" for="callDuration">Длительность, мин</label>
+        <input id="callDuration" type="number" min="5" max="240" value="30">
+        <label class="muted" for="callOutcome">Итог</label>
+        <select id="callOutcome">
+          <option value="planned">запланирован</option>
+          <option value="done">состоялся</option>
+          <option value="no_show">не вышел</option>
+          <option value="reschedule">перенос</option>
+          <option value="won">успех</option>
+          <option value="lost">отказ</option>
+        </select>
+        <label class="muted" for="callNotes">Заметки</label>
+        <textarea id="callNotes" class="textarea-sm" placeholder="Кратко: что договорились"></textarea>
+      </div>
+      <div class="row">
+        <button type="button" id="callSaveBtn">Сохранить</button>
+      </div>
+    </div>
+    <div class="panel-sub">
+      <h3>Список</h3>
+      <button type="button" id="callsRefreshBtn" class="secondary">Обновить</button>
+      <div class="table-scroll" style="margin-top: 10px;">
+        <table class="leads-table" id="callsTable" aria-label="Созвоны">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Когда</th>
+              <th>Лид</th>
+              <th>CRM</th>
+              <th>Итог</th>
+              <th>Мин</th>
+              <th>Заметки</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="callsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+{% endblock %}

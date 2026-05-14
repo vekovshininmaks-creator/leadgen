@@ -1,0 +1,512 @@
+{% extends "base.html" %}
+{% block title %}Настройки и лимиты • Leadgen{% endblock %}
+{% block page_id %}config{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Настройки и лимиты</h2>
+    <div class="panel-sub" id="configPlanPanel">
+      <h3>Тариф и что реально применится</h3>
+      <p class="muted">Лимиты в форме ниже при сохранении <strong>ограничиваются тарифом</strong> (чаты, личные сообщения в сутки/месяц, мин. интервал). Ниже — потолки плана и текущие значения в файле конфигурации.</p>
+      <div class="kv" id="configEffectiveKv"></div>
+    </div>
+    <div class="row">
+      <button id="saveConfigBtn">Сохранить настройки</button>
+      <button id="toggleAdvancedBtn" class="secondary">Все поля (JSON)</button>
+      <span class="muted">Тарифные лимиты применяются при сохранении и при запуске бота.</span>
+    </div>
+
+    <div class="panel-sub" id="configPresetsPanel" data-persist-section="config.presets_open">
+      <h3>Пресеты настроек</h3>
+      <p class="muted" style="margin-top:0;">Готовые наборы лимитов, шаблонов, ключевых слов, расписания, фильтров поиска каналов и промптов LLM. Применение делает <strong>deep-merge</strong>: индивидуальные поля (Telegram-аккаунты, API-ключ LLM, целевые чаты) не трогаются. Перед применением показываем превью изменений.</p>
+      <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center;">
+        <label class="muted" for="presetSelect">Выбрать пресет</label>
+        <select id="presetSelect" aria-label="Выбор пресета" style="min-width:240px;" data-persist="config.preset_select"></select>
+        <button type="button" id="presetPreviewBtn" class="secondary">Просмотр изменений…</button>
+        <button type="button" id="presetSaveAsBtn" class="secondary admin-only" data-admin-only="org">Сохранить текущие как пресет</button>
+        <button type="button" id="presetManageBtn" class="secondary admin-only" data-admin-only="org">Управлять пресетами…</button>
+      </div>
+      <p id="presetInfoMsg" class="muted" role="status" style="margin-top:8px;"></p>
+    </div>
+
+    <div class="row config-page-tabs" role="tablist" aria-label="Разделы настроек">
+      <button type="button" class="secondary config-tab-btn active" data-config-tab="main" id="configTabMainBtn" role="tab" aria-selected="true">Воронка и лимиты</button>
+      <button type="button" class="secondary config-tab-btn" data-config-tab="conn" id="configTabConnBtn" role="tab" aria-selected="false">Подключения (Telegram + LLM)</button>
+    </div>
+
+    <div id="configPanelMain" class="config-tab-panel" data-config-panel="main">
+    <div class="grid-2 config-grid-main">
+      <div class="panel-sub">
+        <h3>Безопасный режим и подпись</h3>
+        <div class="form-grid">
+          <span class="muted">Тестовый запуск</span>
+          <label class="check-row">
+            <input id="cfgDryRun" type="checkbox" class="checkbox">
+            <span>не отправлять личные сообщения (только сценарий и записи в журнал)</span>
+          </label>
+          <label class="muted">Имя в подписи</label>
+          <input id="cfgPartnerName" placeholder="Напр. Алексей — для шаблонов и LLM">
+          <span class="muted">Согласование перед отправкой</span>
+          <label class="check-row">
+            <input id="cfgHumanApproval" type="checkbox" class="checkbox">
+            <span>включить очередь на странице «Офферы» (бот с <code>--data-db</code> должен быть запущен)</span>
+          </label>
+          <span class="muted">Какие этапы через согласование</span>
+          <div class="check-col" style="margin-top: 4px; gap: 6px;">
+            <label class="check-row">
+              <input id="cfgApprStage1" type="checkbox" class="checkbox">
+              <span>Stage 1 (первое ЛС из чата)</span>
+            </label>
+            <label class="check-row">
+              <input id="cfgApprStage2" type="checkbox" class="checkbox">
+              <span>Stage 2 (ответ в личке)</span>
+            </label>
+            <label class="check-row">
+              <input id="cfgApprStage3" type="checkbox" class="checkbox">
+              <span>Stage 3 (приглашение на созвон)</span>
+            </label>
+          </div>
+        </div>
+        <p class="muted dry-run-help">
+          <strong>Тестовый запуск</strong> — бот ищет лиды и пишет в журнал, но не инициирует реальные личные переписки.
+          <strong>Подпись</strong> — подставляется в шаблоны (этап 3) и в подсказки LLM.
+          <strong>Согласование</strong> — для отмеченных этапов текст сначала в «Офферы»; снятая галочка этапа = отправка сразу в очередь бота без подтверждения. Мастер-тумблер выше должен быть включён.
+        </p>
+      </div>
+
+      <div class="panel-sub">
+        <h3>Оффер (личка)</h3>
+        <div class="muted">Stage 1</div>
+        <textarea id="tplStage1" class="textarea-sm"></textarea>
+        <div class="muted">Stage 2</div>
+        <textarea id="tplStage2" class="textarea-sm"></textarea>
+        <div class="muted">Stage 3</div>
+        <textarea id="tplStage3" class="textarea-sm"></textarea>
+      </div>
+    </div>
+
+    <div class="panel-sub config-keywords-span">
+        <h3>Ключевые слова</h3>
+        <p class="muted" style="margin-top:0;">Списки для матчинга в чатах. Можно заполнить вручную или сгенерировать через LLM (ниша — общее поле; кнопки у каждой группы).</p>
+        <div class="row kw-gen-bar" style="flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;">
+          <label class="muted" for="kwGenNiche">Ниша / продукт для генерации</label>
+          <input id="kwGenNiche" type="text" class="search-niche-input" style="min-width:220px; flex:1;" placeholder="Напр. веб-студии для медклиник" autocomplete="off">
+          <label class="muted" for="kwGenAudience">Аудитория (опц.)</label>
+          <input id="kwGenAudience" type="text" class="search-niche-input" style="min-width:160px;" placeholder="владельцы, директора" autocomplete="off">
+        </div>
+        <div id="kwPreviewPanel" class="kw-preview-panel hidden" aria-live="polite">
+          <div class="kw-preview-title">Превью ключевых слов</div>
+          <p class="muted kw-preview-target" id="kwPreviewTarget"></p>
+          <div class="row kw-preview-modes" style="flex-wrap:wrap; gap:12px; align-items:center;">
+            <label class="check-row"><input type="radio" name="kwInsertMode" value="append" checked class="checkbox"> Добавить к списку</label>
+            <label class="check-row"><input type="radio" name="kwInsertMode" value="replace" class="checkbox"> Заменить группу</label>
+            <label class="check-row"><input type="checkbox" id="kwDedup" class="checkbox" checked> Убрать дубли к текущему тексту</label>
+          </div>
+          <div class="kw-preview-list" id="kwPreviewList"></div>
+          <div class="row" style="gap:8px; margin-top:10px;">
+            <button type="button" id="kwPreviewApply" class="secondary">Вставить выбранные</button>
+            <button type="button" id="kwPreviewSelectAll" class="secondary">Все / снять</button>
+            <button type="button" id="kwPreviewCancel" class="secondary">Отмена</button>
+          </div>
+        </div>
+        <div class="config-keywords-inner-grid">
+          <div>
+            <div class="muted kw-head"><span>Hot lead (триггеры)</span> <button type="button" class="secondary kw-gen-btn" data-kw-kind="hot_lead">Сгенерировать</button></div>
+            <textarea id="kwHot" class="textarea-sm"></textarea>
+          </div>
+          <div>
+            <div class="muted kw-head"><span>Required intent (обязательный интент)</span> <button type="button" class="secondary kw-gen-btn" data-kw-kind="required_intent_hot_lead">Сгенерировать</button></div>
+            <textarea id="kwIntent" class="textarea-sm"></textarea>
+          </div>
+          <div>
+            <div class="muted kw-head"><span>Exclude hot lead (продавцы/спам)</span> <button type="button" class="secondary kw-gen-btn" data-kw-kind="exclude_hot_lead">Сгенерировать</button></div>
+            <textarea id="kwExclude" class="textarea-sm"></textarea>
+          </div>
+          <div>
+            <div class="muted kw-head"><span>Negative (стоп-слова)</span> <button type="button" class="secondary kw-gen-btn" data-kw-kind="negative">Сгенерировать</button></div>
+            <textarea id="kwNegative" class="textarea-sm"></textarea>
+          </div>
+          <div>
+            <div class="muted kw-head"><span>Qualification (уточнения)</span> <button type="button" class="secondary kw-gen-btn" data-kw-kind="qualification">Сгенерировать</button></div>
+            <textarea id="kwQual" class="textarea-sm"></textarea>
+          </div>
+          <div>
+            <div class="muted kw-head"><span>Interested (сигналы интереса)</span> <button type="button" class="secondary kw-gen-btn" data-kw-kind="interested">Сгенерировать</button></div>
+            <textarea id="kwInterested" class="textarea-sm"></textarea>
+          </div>
+          <div>
+            <div class="muted kw-head"><span>Bio block (бан по био)</span> <button type="button" class="secondary kw-gen-btn" data-kw-kind="bio_block">Сгенерировать</button></div>
+            <textarea id="kwBioBlock" class="textarea-sm"></textarea>
+          </div>
+        </div>
+    </div>
+
+    <div class="panel-sub hidden" id="channelSearchQualityPanel">
+      <h3>Поиск каналов: качество выдачи</h3>
+      <p class="muted" style="margin-top:0;">Только для <strong>администратора организации</strong>. Включение режима добавляет запросы к чатам обсуждений (или к мегагруппам) при глобальном поиске — медленнее, но отсекает «мёртвые» и одноавторские витрины. Сохраните настройки и выполняйте поиск при остановленном боте.</p>
+      <div class="check-col" style="gap:8px; margin-bottom:12px;">
+        <label class="check-row"><input type="checkbox" id="csqEnabled" class="checkbox"> <span>Включить фильтр качества при поиске каналов</span></label>
+        <label class="check-row"><input type="checkbox" id="csqDebugMetrics" class="checkbox"> <span>Добавлять в ответ метрики и score (для отладки порогов)</span></label>
+        <label class="check-row"><input type="checkbox" id="csqForceRequireDiscussion" class="checkbox"> <span>Всегда требовать канал с обсуждением (как галочка на странице поиска)</span></label>
+      </div>
+      <div class="form-grid" style="max-width:720px;">
+        <label class="muted" for="csqWindowSec">Окно анализа сообщений</label>
+        <select id="csqWindowSec">
+          <option value="3600">1 час</option>
+          <option value="86400" selected>24 часа</option>
+          <option value="604800">7 дней</option>
+        </select>
+        <label class="muted" for="csqSampleMax">Макс. сообщений на чат (выборка)</label>
+        <input id="csqSampleMax" type="number" min="20" max="500" value="200" class="search-count-input">
+        <label class="muted" for="csqPerRowDelay">Пауза между чатами, сек</label>
+        <input id="csqPerRowDelay" type="number" min="0.05" max="2" step="0.05" value="0.18" class="search-count-input">
+        <label class="muted" for="csqMinAboutLen">Мин. длина описания канала (симв.)</label>
+        <input id="csqMinAboutLen" type="number" min="0" max="500" value="12" class="search-count-input" title="Для «пустое описание»">
+      </div>
+      <h4 class="muted" style="margin:14px 0 8px; font-size:0.95rem;">Пороги по обсуждению</h4>
+      <div class="form-grid" style="max-width:720px;">
+        <label class="muted" for="csqMinAuthors">Мин. уникальных авторов (0 = выкл.)</label>
+        <input id="csqMinAuthors" type="number" min="0" max="200" value="0" class="search-count-input">
+        <label class="muted" for="csqMaxTopAuthorPct">Макс. доля сообщений топ-автора, %</label>
+        <input id="csqMaxTopAuthorPct" type="number" min="0" max="100" value="100" class="search-count-input" title="100 = не ограничивать">
+        <label class="muted" for="csqMinMessages">Мин. сообщений в окне (0 = выкл.)</label>
+        <input id="csqMinMessages" type="number" min="0" max="5000" value="0" class="search-count-input">
+        <label class="muted" for="csqMinMeanLen">Мин. средняя длина текста сообщения</label>
+        <input id="csqMinMeanLen" type="number" min="0" max="500" value="0" class="search-count-input">
+        <label class="muted" for="csqMaxDupPct">Макс. доля дубликатов текста, %</label>
+        <input id="csqMaxDupPct" type="number" min="0" max="100" value="100" class="search-count-input">
+        <label class="muted" for="csqMaxPromoPct">Макс. доля «промо» сообщений, %</label>
+        <input id="csqMaxPromoPct" type="number" min="0" max="100" value="100" class="search-count-input">
+        <label class="muted" for="csqMaxForwardPct">Макс. доля репостов, %</label>
+        <input id="csqMaxForwardPct" type="number" min="0" max="100" value="100" class="search-count-input">
+        <label class="muted" for="csqMinQuestionPct">Мин. доля сообщений с вопросом, %</label>
+        <input id="csqMinQuestionPct" type="number" min="0" max="100" value="0" class="search-count-input">
+        <label class="muted" for="csqMinReplyPct">Мин. доля ответов (reply), %</label>
+        <input id="csqMinReplyPct" type="number" min="0" max="100" value="0" class="search-count-input">
+        <label class="muted" for="csqMinCyrillicPct">Мин. доля кириллицы в тексте, %</label>
+        <input id="csqMinCyrillicPct" type="number" min="0" max="100" value="0" class="search-count-input" title="Для «только RU» задайте ~35–50">
+        <label class="muted" for="csqMinKeywordHits">Мин. сообщений с нишевым ключом</label>
+        <input id="csqMinKeywordHits" type="number" min="0" max="500" value="1" class="search-count-input">
+        <label class="muted" for="csqMinQualityScore">Мин. quality score 0–100 (0 = выкл.)</label>
+        <input id="csqMinQualityScore" type="number" min="0" max="100" value="0" class="search-count-input">
+      </div>
+      <h4 class="muted" style="margin:14px 0 8px; font-size:0.95rem;">Галочки</h4>
+      <div class="check-col" style="gap:6px;">
+        <label class="check-row"><input type="checkbox" id="csqExcludeEmptyAbout" class="checkbox"> Исключить каналы с коротким/пустым описанием</label>
+        <label class="check-row"><input type="checkbox" id="csqExcludeNoContact" class="checkbox"> Исключить без ссылки/e-mail/@ в описании</label>
+        <label class="check-row"><input type="checkbox" id="csqExcludeSingleAuthor" class="checkbox"> Исключить обсуждения с ≤1 автором</label>
+        <label class="check-row"><input type="checkbox" id="csqExcludeForwardHeavy" class="checkbox"> Жёстче резать репосты (порог выше)</label>
+        <label class="check-row"><input type="checkbox" id="csqNicheOnly" class="checkbox"> Только если есть совпадение с ключами (ниша)</label>
+        <label class="check-row"><input type="checkbox" id="csqRussianOnly" class="checkbox"> Только русскоязычные (кириллица в тексте/описании)</label>
+      </div>
+      <h4 class="muted" style="margin:14px 0 8px; font-size:0.95rem;">Источники ключей для ниши</h4>
+      <div class="check-col" style="gap:6px; flex-wrap:wrap; flex-direction:row;">
+        <label class="check-row"><input type="checkbox" id="csqKwHot" class="checkbox csq-kw-src" value="hot_lead" checked> hot_lead</label>
+        <label class="check-row"><input type="checkbox" id="csqKwIntent" class="checkbox csq-kw-src" value="required_intent_hot_lead" checked> required_intent</label>
+        <label class="check-row"><input type="checkbox" id="csqKwQual" class="checkbox csq-kw-src" value="qualification"> qualification</label>
+        <label class="check-row"><input type="checkbox" id="csqKwInterested" class="checkbox csq-kw-src" value="interested"> interested</label>
+      </div>
+      <label class="muted" for="csqExtraKeywords" style="display:block; margin-top:10px;">Доп. ключи (строка = одна фраза)</label>
+      <textarea id="csqExtraKeywords" class="textarea-sm" placeholder="маркетинг&#10;b2b продажи" style="min-height:72px;"></textarea>
+    </div>
+
+    <div class="grid-2 config-grid-main">
+      <div class="panel-sub">
+        <h3>Лимиты</h3>
+        <p class="muted" style="margin-top:0;">Основные значения. При сохранении их подрежет текущий тариф.</p>
+        <div class="form-grid">
+          <label class="muted" for="limMonitor">Мониторинг, сек</label>
+          <input id="limMonitor" type="number" min="1" step="1" title="Как часто бот проходит чаты">
+          <label class="muted" for="limFetch">Сообщений с чата за цикл</label>
+          <input id="limFetch" type="number" min="1" step="1" title="Сколько последних сообщений забирать на один проход">
+          <label class="muted" for="limDmHourChat">Личных сообщений с одного чата за час</label>
+          <input id="limDmHourChat" type="number" min="0" step="1">
+          <label class="muted" for="limDayMin">Личных сообщений в сутки (мин.)</label>
+          <input id="limDayMin" type="number" min="0" step="1">
+          <label class="muted" for="limDayMax">Личных сообщений в сутки (макс.)</label>
+          <input id="limDayMax" type="number" min="0" step="1">
+          <label class="muted" for="limMonth">Личных сообщений в месяц (потолок)</label>
+          <input id="limMonth" type="number" min="0" step="1" title="Обычно по тарифу; можно уточнить вручную">
+          <label class="muted" for="limMaxPasses">Макс. полных проходов мониторинга чатов (0 = без лимита)</label>
+          <input id="limMaxPasses" type="number" min="0" step="1" title="После N полных циклов обхода чатов мониторинг останавливается (ЛС и приём ответов продолжают работать). Сброс при перезапуске бота.">
+        </div>
+        <details class="config-adv-details">
+          <summary>Продвинутые задержки и паузы</summary>
+          <p class="muted" style="margin:8px 0;">Имитация печати, задержка между чатами, задержки между этапами, follow-up в часах. Можно оставить по умолчанию.</p>
+          <div class="form-grid" style="margin-top:8px;">
+            <label class="muted" for="limTypingMin">Печать, сек (мин–макс)</label>
+            <div class="row">
+              <input id="limTypingMin" type="number" min="0" step="1" placeholder="мин">
+              <input id="limTypingMax" type="number" min="0" step="1" placeholder="макс">
+            </div>
+            <label class="muted" for="limScanMin">Пауза между чатами, сек</label>
+            <div class="row">
+              <input id="limScanMin" type="number" min="0" step="0.01" placeholder="мин">
+              <input id="limScanMax" type="number" min="0" step="0.01" placeholder="макс">
+            </div>
+            <span class="muted">Задержка этап 1 (сек)</span>
+            <div class="row">
+              <input id="limS1Min" type="number" min="0" step="1" placeholder="мин">
+              <input id="limS1Max" type="number" min="0" step="1" placeholder="макс">
+            </div>
+            <span class="muted">Задержка этап 2 (сек)</span>
+            <div class="row">
+              <input id="limS2Min" type="number" min="0" step="1" placeholder="мин">
+              <input id="limS2Max" type="number" min="0" step="1" placeholder="макс">
+            </div>
+            <span class="muted">Задержка этап 3 (сек)</span>
+            <div class="row">
+              <input id="limS3Min" type="number" min="0" step="1" placeholder="мин">
+              <input id="limS3Max" type="number" min="0" step="1" placeholder="макс">
+            </div>
+          </div>
+          <h4 class="panel-sub" style="margin:14px 0 6px; font-size:1rem;">Follow-up, часы (вместо секунд)</h4>
+          <p class="muted" style="margin:0 0 8px;">Если задано &gt; 0, пауза перед этапом в часах; иначе используются только секунды выше.</p>
+          <div class="form-grid">
+            <span class="muted">Этап 1, ч (мин–макс)</span>
+            <div class="row">
+              <input id="limFh1Min" type="number" min="0" step="0.5" placeholder="0">
+              <input id="limFh1Max" type="number" min="0" step="0.5" placeholder="0">
+            </div>
+            <span class="muted">Этап 2, ч (мин–макс)</span>
+            <div class="row">
+              <input id="limFh2Min" type="number" min="0" step="0.5" placeholder="0">
+              <input id="limFh2Max" type="number" min="0" step="0.5" placeholder="0">
+            </div>
+            <span class="muted">Этап 3, ч (мин–макс)</span>
+            <div class="row">
+              <input id="limFh3Min" type="number" min="0" step="0.5" placeholder="0">
+              <input id="limFh3Max" type="number" min="0" step="0.5" placeholder="0">
+            </div>
+          </div>
+        </details>
+        <p class="muted" style="margin-top:10px;">Реже мониторинг — мягче для аккаунта; чаще — быстрее реакция, выше риск лимитов Telegram.</p>
+      </div>
+
+      <div class="panel-sub">
+        <h3>Расписание</h3>
+        <p class="muted">Вне окна бот не сканирует чаты и не отправляет личные сообщения (очередь переносится).</p>
+        <div class="form-grid">
+          <span class="muted">Расписание</span>
+          <label class="check-row">
+            <input id="schEnabled" type="checkbox" class="checkbox">
+            <span>включить окно активности</span>
+          </label>
+          <label class="muted">Часовой пояс (IANA)</label>
+          <input id="schTz" type="text" placeholder="Europe/Moscow">
+          <label class="muted">Начало окна (часы, 0–24)</label>
+          <input id="schStart" type="number" min="0" max="24" step="0.5">
+          <label class="muted">Конец окна (часы, 0–24)</label>
+          <input id="schEnd" type="number" min="0" max="24" step="0.5">
+        </div>
+        <p class="muted">Ночное окно: например 22 → 6 (начало больше конца).</p>
+      </div>
+    </div>
+    </div>
+
+    <div id="configPanelConn" class="config-tab-panel hidden" data-config-panel="conn">
+      <div class="grid-2" id="connections">
+        <div class="panel-sub">
+        <h3>Telegram API (только эта организация)</h3>
+        <p class="muted">
+          <code>api_id</code> и <code>api_hash</code> с
+          <a class="link" href="https://my.telegram.org" target="_blank" rel="noopener">my.telegram.org</a>.
+          У новой организации при первом открытии настроек поля пустые — корневой config не подставляет чужие ключи.
+        </p>
+        <h4 class="meta" style="margin:12px 0 6px; font-size:0.95rem;">Несколько аккаунтов</h4>
+        <p class="muted" style="margin-top:0;">У каждого аккаунта — отдельный логин Telethon и файл в <code>sessions/</code>. <strong>Активный</strong> — тот, с которым работает мониторинг (запущенный бот). В «Поиск каналов» можно отметить несколько и объединить выдачу.</p>
+        <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
+          <label class="muted" for="cfgTgEdit">Редактировать</label>
+          <select id="cfgTgEdit" aria-label="Аккаунт для правки"></select>
+          <label class="muted" for="cfgTgActive">Активный (бот)</label>
+          <select id="cfgTgActive" aria-label="Аккаунт для мониторинга"></select>
+          <button type="button" class="secondary" id="cfgTgAddBtn">+ Аккаунт</button>
+          <button type="button" class="secondary" id="cfgTgRemoveBtn" title="Удалить выбранный в «Редактировать»">Удалить</button>
+        </div>
+        <p id="cfgTgSyncHint" class="muted hidden" role="status" style="margin:0 0 8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--bg-input);"></p>
+        <p class="muted" style="margin:0 0 8px; font-size:0.88rem;">При смене <strong>«Активный (бот)»</strong> форма переключается на этот же аккаунт (черновик предыдущего аккаунта сохраняется в буфере). Чтобы править другой аккаунт без смены активного — используйте только «Редактировать».</p>
+        <div class="form-grid">
+          <label class="muted" for="cfgTgLabel">Название (для списка)</label>
+          <input id="cfgTgLabel" type="text" placeholder="Основной, Резерв" autocomplete="off">
+          <label class="muted">api_id</label>
+          <input id="cfgApiId" type="text" inputmode="numeric" placeholder="12345678" autocomplete="off">
+          <label class="muted">api_hash</label>
+          <div class="password-field">
+            <input id="cfgApiHash" type="password" placeholder="hex" autocomplete="off">
+            <button type="button" class="secondary pwd-toggle" data-pwd-target="cfgApiHash" aria-label="Показать">Показать</button>
+          </div>
+          <label class="muted">Телефон (Telegram)</label>
+          <input id="cfgPhone" type="text" placeholder="+79990000000" autocomplete="off">
+        </div>
+        <p id="cfgTgSessionHint" class="muted" style="margin:8px 0 0;">Файл сессии: —</p>
+        </div>
+
+        <div class="panel-sub" id="llmAdminBlock">
+        <p id="llmReadonlyHint" class="muted llm-readonly-slot" aria-live="polite">
+          <span class="llm-readonly-slot__inner">Настройки LLM может менять только <strong>администратор организации</strong>. После сохранения ключа менеджеры смогут пользоваться генерацией в «Поиск каналов» и черновиками в «Переписка».</span>
+        </p>
+        <h3>LLM (Chat Completions)</h3>
+        <p class="muted">
+          OpenAI или другой сервис с тем же API. Ключ хранится в файле настроек вашей организации на сервере.
+        </p>
+        <div class="form-grid">
+          <label class="muted" for="llmPresetSelect">Провайдер (пресет)</label>
+          <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center;">
+            <select id="llmPresetSelect" aria-label="Пресет LLM">
+              <option value="">— вручную —</option>
+            </select>
+            <span class="muted" style="font-size:12.5px;">Подставит Base URL и модель; ключ вводится отдельно.</span>
+          </div>
+          <label class="muted">LLM включён</label>
+          <label class="check-row">
+            <input id="llmEnabled" type="checkbox" class="checkbox">
+            <span>использовать в чатах и боте</span>
+          </label>
+          <label class="muted">API key</label>
+          <div class="password-field">
+            <input id="llmApiKey" type="password" placeholder="sk-..." autocomplete="off">
+            <button type="button" class="secondary pwd-toggle" data-pwd-target="llmApiKey" aria-label="Показать">Показать</button>
+          </div>
+          <label class="muted">Base URL</label>
+          <input id="llmBaseUrl" type="text" placeholder="https://api.openai.com/v1">
+          <label class="muted">Модель</label>
+          <input id="llmModel" type="text" placeholder="gpt-4o-mini">
+        </div>
+        <div id="llmPromptsSection" class="llm-prompts-section hidden" style="margin-top:14px;">
+          <details class="config-adv-details" open>
+            <summary>Промпты для генерации (system / user)</summary>
+            <p class="muted" style="margin-top:8px;">
+              Редактирует только <strong>администратор организации</strong>. В шаблонах «user» можно использовать плейсхолдеры в фигурных скобках (<code>{partner}</code> и т.д.) — их подставляет система; неизвестное имя даст пустую строку.
+              Поле, оставленное как при загрузке страницы, совпадает с текстом по умолчанию и в файл конфигурации не дублируется.
+            </p>
+
+            <h4 class="meta" style="margin:14px 0 6px; font-size:0.95rem;">Помощник (?)</h4>
+            <label class="muted">assistant_system</label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="assistant_system" rows="4"></textarea>
+            <label class="muted">assistant_user — плейсхолдеры: <code>{page}</code>, <code>{question}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="assistant_user" rows="3"></textarea>
+
+            <h4 class="meta" style="margin:14px 0 6px; font-size:0.95rem;">Поиск каналов — фразы для поиска</h4>
+            <label class="muted">search_keywords_system</label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="search_keywords_system" rows="4"></textarea>
+            <label class="muted">search_keywords_user — <code>{niche}</code>, <code>{extra_aud}</code>, <code>{extra_stop}</code>, <code>{count}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="search_keywords_user" rows="4"></textarea>
+
+            <h4 class="meta" style="margin:14px 0 6px; font-size:0.95rem;">Настройки — генерация групп ключевых слов</h4>
+            <label class="muted">config_keywords_system</label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="config_keywords_system" rows="3"></textarea>
+            <label class="muted">config_keywords_user — <code>{niche}</code>, <code>{extra_aud}</code>, <code>{count}</code>, <code>{kind}</code>, <code>{hint}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="config_keywords_user" rows="3"></textarea>
+
+            <h4 class="meta" style="margin:14px 0 6px; font-size:0.95rem;">Чаты — «Предложить оффер»</h4>
+            <label class="muted">chats_suggest_offer_system</label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="chats_suggest_offer_system" rows="3"></textarea>
+            <label class="muted">chats_suggest_offer_user — <code>{partner}</code>, <code>{chat_key}</code>, <code>{snippet}</code>, <code>{stage1_hint}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="chats_suggest_offer_user" rows="4"></textarea>
+
+            <h4 class="meta" style="margin:14px 0 6px; font-size:0.95rem;">Офферы — перегенерация черновика (stage 1–3)</h4>
+            <label class="muted">outreach_stage1_system</label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="outreach_stage1_system" rows="3"></textarea>
+            <label class="muted">outreach_stage1_user — <code>{partner}</code>, <code>{user_ctx}</code>, <code>{chat_key}</code>, <code>{lead_snippet}</code>, <code>{stage1_hint}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="outreach_stage1_user" rows="4"></textarea>
+            <label class="muted">outreach_stage2_system</label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="outreach_stage2_system" rows="2"></textarea>
+            <label class="muted">outreach_stage2_user — <code>{partner}</code>, <code>{user_ctx}</code>, <code>{chat_key}</code>, <code>{task_hint}</code>, <code>{lead_snippet}</code>, <code>{s2}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="outreach_stage2_user" rows="4"></textarea>
+            <label class="muted">outreach_stage3_system</label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="outreach_stage3_system" rows="2"></textarea>
+            <label class="muted">outreach_stage3_user — <code>{partner}</code>, <code>{user_ctx}</code>, <code>{task_hint}</code>, <code>{lead_snippet}</code>, <code>{s3}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="outreach_stage3_user" rows="4"></textarea>
+
+            <h4 class="meta" style="margin:14px 0 6px; font-size:0.95rem;">Переписка CRM — следующее сообщение (stage 1–3)</h4>
+            <label class="muted">conversation_stage1_system</label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="conversation_stage1_system" rows="2"></textarea>
+            <label class="muted">conversation_stage1_user — <code>{partner}</code>, <code>{lead_label}</code>, <code>{source_chat}</code>, <code>{lead_snippet}</code>, <code>{hist_block}</code>, <code>{stage1_hint}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="conversation_stage1_user" rows="4"></textarea>
+            <label class="muted">conversation_stage2_system</label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="conversation_stage2_system" rows="2"></textarea>
+            <label class="muted">conversation_stage2_user — <code>{partner}</code>, <code>{lead_label}</code>, <code>{source_chat}</code>, <code>{hist_block}</code>, <code>{s2}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="conversation_stage2_user" rows="3"></textarea>
+            <label class="muted">conversation_stage3_system</label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="conversation_stage3_system" rows="2"></textarea>
+            <label class="muted">conversation_stage3_user — <code>{partner}</code>, <code>{lead_label}</code>, <code>{hist_block}</code>, <code>{s3}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="conversation_stage3_user" rows="3"></textarea>
+
+            <h4 class="meta" style="margin:14px 0 6px; font-size:0.95rem;">Бот — stage 2 и 3 в личке (LLM)</h4>
+            <label class="muted">bot_stage23_system</label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="bot_stage23_system" rows="3"></textarea>
+            <label class="muted">bot_stage2_user — <code>{partner}</code>, <code>{task_hint}</code>, <code>{lead_snippet}</code>, <code>{stage2_tpl}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="bot_stage2_user" rows="4"></textarea>
+            <label class="muted">bot_stage3_user — <code>{partner}</code>, <code>{task_hint}</code>, <code>{lead_snippet}</code>, <code>{stage3_tpl}</code></label>
+            <textarea class="textarea-sm llm-prompt-ta" data-prompt-key="bot_stage3_user" rows="4"></textarea>
+          </details>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="advancedBox" class="panel-sub hidden">
+      <h3>Advanced: raw JSON</h3>
+      <textarea id="configEditor" class="textarea-lg"></textarea>
+      <p class="muted">Не меняй поля, которые не понимаешь. Ошибка JSON сломает сохранение.</p>
+    </div>
+  </section>
+
+  <dialog id="presetPreviewDialog" class="preset-dialog">
+    <form method="dialog">
+      <h3 id="presetPreviewTitle">Превью изменений пресета</h3>
+      <p class="muted" id="presetPreviewSubtitle"></p>
+      <div class="preset-diff-table-wrap">
+        <table class="preset-diff-table" aria-label="Список изменений">
+          <thead>
+            <tr><th>Параметр</th><th>Сейчас</th><th>Станет</th></tr>
+          </thead>
+          <tbody id="presetDiffBody"></tbody>
+        </table>
+      </div>
+      <p id="presetPreviewError" class="form-error hidden" role="alert"></p>
+      <div class="row preset-dialog-actions" style="margin-top:12px; gap:8px; flex-wrap:wrap;">
+        <button type="button" id="presetApplyConfirmBtn">Применить пресет</button>
+        <button type="button" value="cancel" class="secondary" id="presetPreviewCancelBtn">Отмена</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="presetManageDialog" class="preset-dialog">
+    <form method="dialog">
+      <h3>Управление пресетами</h3>
+      <p class="muted" id="presetManageHint">
+        Платформенный admin создаёт «system»-пресеты (видны всем organizations). Admin организации — приватные org-пресеты.
+      </p>
+      <div class="preset-manage-grid">
+        <div class="preset-manage-list">
+          <div class="row" style="gap:6px;">
+            <button type="button" id="presetMgrNewBtn" class="secondary">+ Новый из текущих настроек</button>
+            <button type="button" id="presetMgrReloadBtn" class="secondary">Обновить</button>
+          </div>
+          <ul id="presetMgrList" class="preset-manage-list-ul" aria-label="Список пресетов"></ul>
+        </div>
+        <div class="preset-manage-edit">
+          <div class="form-grid">
+            <label class="muted" for="presetMgrName">Название</label>
+            <input id="presetMgrName" type="text" maxlength="80" placeholder="Стартовый набор для медцентров">
+            <label class="muted" for="presetMgrKind">Тип</label>
+            <select id="presetMgrKind">
+              <option value="org">org (приватный для моей организации)</option>
+              <option value="system">system (виден всем — только платформенный admin)</option>
+            </select>
+            <label class="muted" for="presetMgrDesc">Описание</label>
+            <textarea id="presetMgrDesc" class="textarea-sm" rows="3" placeholder="Короткий комментарий (что включает, для каких ниш)"></textarea>
+          </div>
+          <p class="muted" style="margin-top:8px;">Данные пресета снимаются из <em>текущего</em> <code>config.json</code> вашей организации при создании. Для обновления существующего — нажмите «Обновить данные из текущих настроек».</p>
+          <p id="presetMgrMsg" class="muted" role="status"></p>
+          <div class="row" style="gap:8px; flex-wrap:wrap; margin-top:8px;">
+            <button type="button" id="presetMgrSaveBtn">Сохранить</button>
+            <button type="button" id="presetMgrSnapshotBtn" class="secondary">Обновить данные из текущих настроек</button>
+            <button type="button" id="presetMgrDeleteBtn" class="secondary danger">Удалить</button>
+            <button type="button" value="cancel" id="presetMgrCloseBtn" class="secondary">Закрыть</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </dialog>
+{% endblock %}

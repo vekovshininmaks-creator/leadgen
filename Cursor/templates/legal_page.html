@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ legal_title }} • Leadgen{% endblock %}
+{% block page_id %}legal{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h1>{{ legal_title }}</h1>
+    {% if legal_sub %}<p class="muted">{{ legal_sub }}</p>{% endif %}
+    <div class="legal-body">{{ legal_html|safe }}</div>
+    <p class="muted"><a href="/auth">Авторизация</a> · <a href="/">Рабочий стол</a></p>
+  </section>
+{% endblock %}

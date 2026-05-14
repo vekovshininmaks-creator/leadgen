@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Управление ботом • Leadgen{% endblock %}
+{% block page_id %}bot{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Управление ботом</h2>
+    <div class="bot-control-block">
+      <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center;">
+        <button id="startBtn">Старт</button>
+        <span id="botTestModeBadge" class="bot-test-badge hidden" title="В настройках включён тестовый режим (без реальных ЛС)">Тестовый режим</span>
+        <button id="stopBtn" class="secondary">Стоп</button>
+        <button type="button" id="openBotMonitorSettingsBtn" class="secondary" title="Интервал проходов, расписание окна, лимит циклов">Мониторинг…</button>
+        <span id="botStatus" class="muted">Статус: ...</span>
+      </div>
+      <div id="botTgAccountsBlock" class="panel-sub search-tg-acc-block hidden" style="padding-top:0; padding-bottom:0;"></div>
+      <p id="syncDialogsMsg" class="muted hidden" role="status"></p>
+      <p id="botActionMsg" class="bot-inline-msg hidden" role="status"></p>
+      <div class="progress-wrap">
+        <div class="progress-track" aria-hidden="true">
+          <div id="botProgressBar" class="progress-bar"></div>
+        </div>
+        <p id="botProgressLabel" class="muted progress-label">Ход обхода чатов: …</p>
+        <p id="botMiniStats" class="muted bot-mini-stats">Загрузка счётчиков…</p>
+      </div>
+      <div class="kv" id="botKv"></div>
+      <p class="muted">Окно можно закрыть: пока работает <strong>сервер</strong> с запущенным приложением, бот продолжит мониторинг. Если остановить процесс на сервере или ПК ушёл в сон — работа прервётся.</p>
+    </div>
+    <div class="panel-sub bot-log-section">
+      <h3>Журнал действий и проходов</h3>
+      <p class="muted">Строки ниже — что бот делает сейчас и недавно сделал (обход чатов, загрузка сообщений, ЛС). Ниже — хвост файла <code>bot.log</code> организации.</p>
+      <pre id="botScanLog" class="textarea-sm bot-scan-log-pre">…</pre>
+      <h4 class="muted" style="margin:12px 0 6px; font-size:0.95rem;">Хвост bot.log</h4>
+      <pre id="botLogTail" class="textarea-sm bot-log-tail-pre muted">…</pre>
+      <details class="help-details" style="margin-top:12px;">
+        <summary>Debug UI: все нажатия и API</summary>
+        <pre id="botPageUiDebugMirror" class="textarea-sm bot-log-tail-pre" aria-hidden="true">…</pre>
+      </details>
+    </div>
+    <div class="panel-sub">
+      <h3>Последние лиды</h3>
+      <p class="muted">Недавние записи из таблицы отправок: этап, статус, текст, по какому слову сработало.</p>
+      <ul class="lead-legend muted" aria-label="Метки и цвет">
+        <li><mark class="lead-trigger">жёлтый</mark> — совпадение с триггером</li>
+        <li>Цвет строки — метка лида (см. колонку «Метка»; хранится в <code>sent_leads.csv</code>)</li>
+      </ul>
+      <div class="table bot-leads-table" id="botLeadsTable"></div>
+    </div>
+    <p class="muted">Запуск, остановка и синхронизация чатов доступны ролям «админ», «менеджер» и «клиент» (с активной подпиской).</p>
+  </section>
+
+  <dialog id="botMonitorSettingsDialog" class="bot-monitor-dialog">
+    <div id="botMonitorSettingsForm" class="panel-sub">
+      <h3 style="margin-top:0;">Интервал и расписание мониторинга</h3>
+      <p class="muted">Те же настройки, что в «Настройки и лимиты»; сохраняются в <code>config.json</code> организации.</p>
+      <div class="form-grid" style="max-width:520px;">
+        <label class="muted" for="botDlgMonitorSec">Интервал между полными проходами, сек</label>
+        <input id="botDlgMonitorSec" type="number" min="1" step="1" required>
+        <label class="muted" for="botDlgMaxPasses">Макс. проходов (0 = без лимита)</label>
+        <input id="botDlgMaxPasses" type="number" min="0" step="1" value="0">
+        <span class="muted">Окно активности</span>
+        <label class="check-row"><input type="checkbox" id="botDlgSchEn" class="checkbox"> <span>включить расписание</span></label>
+        <label class="muted" for="botDlgSchTz">Часовой пояс (IANA)</label>
+        <input id="botDlgSchTz" type="text" placeholder="Europe/Moscow">
+        <label class="muted" for="botDlgSchStart">Начало окна (часы 0–24)</label>
+        <input id="botDlgSchStart" type="number" min="0" max="24" step="0.5" value="9">
+        <label class="muted" for="botDlgSchEnd">Конец окна (часы 0–24)</label>
+        <input id="botDlgSchEnd" type="number" min="0" max="24" step="0.5" value="21">
+      </div>
+      <div class="row" style="gap:8px; margin-top:14px; flex-wrap:wrap;">
+        <button type="button" id="botMonitorSettingsSaveBtn">Сохранить</button>
+        <button type="button" class="secondary" id="botMonitorSettingsCancelBtn">Отмена</button>
+      </div>
+      <p id="botMonitorSettingsMsg" class="form-error hidden" role="status"></p>
+    </div>
+  </dialog>
+{% endblock %}
+

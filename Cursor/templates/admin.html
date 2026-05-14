@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Admin • Leadgen{% endblock %}
+{% block page_id %}admin{% endblock %}
+{% block content %}
+  <section class="panel" id="adminRestartPanel">
+    <h2>Перезапуск сайта</h2>
+    <p class="muted">Только для платформенного администратора. На несколько секунд сайт станет недоступен — сессии и кэш не теряются (сохраняются в БД). Метод перезапуска задаётся переменными окружения на сервере, см. подсказку ниже.</p>
+    <div class="kv" id="adminRestartKv"></div>
+    <div class="row" style="gap:8px; flex-wrap:wrap; margin-top:10px;">
+      <button type="button" id="adminRestartBtn">Перезапустить сайт</button>
+      <button type="button" id="adminRestartInfoBtn" class="secondary">Обновить инфо</button>
+      <span id="adminRestartMsg" class="muted" role="status"></span>
+    </div>
+    <details class="help-details" style="margin-top:10px;">
+      <summary>Как настроить на сервере</summary>
+      <ul class="muted" style="line-height:1.5;">
+        <li><strong>systemd</strong> (рекомендуется): <code>LEADGEN_RESTART_COMMAND="systemctl restart leadgen.service"</code> и право на эту команду у юзера сервиса (через <code>sudoers</code> или своя unit-зависимость).</li>
+        <li><strong>pm2 / supervisor</strong>: <code>LEADGEN_RESTART_COMMAND="pm2 restart leadgen"</code> или <code>supervisorctl restart leadgen</code>.</li>
+        <li><strong>gunicorn --reload-extra-file FLAG</strong>: <code>LEADGEN_RESTART_TOUCH_FILE="/run/leadgen/reload.flag"</code> — приложение «трогает» файл, gunicorn делает graceful reload.</li>
+        <li><strong>gunicorn master (SIGHUP)</strong>: <code>LEADGEN_RESTART_PARENT_SIGNAL="HUP"</code> — отправляем сигнал родителю.</li>
+        <li><strong>Одиночный процесс</strong>: <code>LEADGEN_ALLOW_SELF_EXEC=1</code> — текущий процесс перезапускает сам себя (только если он один и не воркер gunicorn).</li>
+      </ul>
+    </details>
+  </section>
+
+  <section class="panel">
+    <h2>Admin Dashboard</h2>
+    <p class="muted" id="adminOverviewHint">Сводка по всей системе: пользователи, организации, подписки и активность по CSV. У каждого пользователя можно задать <strong>организацию и роль в org</strong> (client / manager / tester / admin орг) через блок «Организация и роль» и API <code>POST /api/admin/membership/set</code>. Отдельно роль <strong>manager</strong> в таблице <code>users</code> — платформенная; менеджеров клиента по-прежнему можно назначать так же.</p>
+    <div class="cards" id="adminCards"></div>
+    <div class="panel-sub">
+      <h3>Статусы подписок</h3>
+      <p class="muted">Сколько организаций в каждом статусе подписки (active, trial, paused, expired, banned).</p>
+      <div class="kv" id="adminSubStatusKv"></div>
+    </div>
+    <div class="panel-sub">
+      <h3>Активность по организациям (CSV)</h3>
+      <p class="muted">Строки в sent_leads.csv по каждой org — приблизительная метрика записанных событий/лидов (зависит от формата CSV).</p>
+      <div class="table" id="adminTenantsTable"></div>
+    </div>
+    <div class="panel-sub">
+      <h3>Что означают метрики</h3>
+      <div class="kv muted" id="adminLegendKv"></div>
+    </div>
+    <div class="panel-sub" id="adminPlansPanel">
+      <h3>Тарифы (планы в БД)</h3>
+      <p class="muted">Лимиты из таблицы <code>plans</code> применяются ко всем организациям с этим <code>plan_id</code>. Сохранение — сразу в базу (CSRF по сессии).</p>
+      <div class="table admin-plans-table" id="adminPlansTable"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Пользователи</h2>
+    <p class="muted">Тариф и статус подписки задаются <strong>по организации пользователя</strong> (кнопка «Применить тариф» в строке). Фильтр по дате — локальное время браузера; <code>created_at</code> из базы.</p>
+    <div class="row admin-user-filters">
+      <input id="adminUserEmailSearch" type="search" placeholder="Поиск по email" autocomplete="off">
+      <label class="muted filter-date-label">Регистрация с</label>
+      <input id="adminUserRegFrom" type="date" title="Дата регистрации: с">
+      <label class="muted filter-date-label">по</label>
+      <input id="adminUserRegTo" type="date" title="Дата регистрации: по">
+      <button id="adminUserFilterReset" type="button" class="secondary">Сбросить фильтры</button>
+    </div>
+    <div class="row">
+      <button id="refreshUsersBtn" class="secondary">Обновить список</button>
+      <span class="muted" id="adminUsersFilterHint">Показано: —</span>
+    </div>
+    <div class="table" id="usersTable"></div>
+    <p class="muted">Блокировка ставит подписку организации пользователя в статус banned и останавливает его бота.</p>
+  </section>
+{% endblock %}

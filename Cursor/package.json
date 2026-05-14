@@ -1,0 +1,11 @@
+{
+  "name": "leadgen-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Leadgen web console + API",
+  "scripts": {
+    "dev": "py web_app.py",
+    "web:dev": "py web_app.py",
+    "web:prod": "gunicorn -w 2 -b 0.0.0.0:5173 wsgi:app"
+  }
+}

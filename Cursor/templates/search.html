@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}Поиск каналов • Leadgen{% endblock %}
+{% block page_id %}search{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Поиск каналов</h2>
+
+    <div class="search-channel-tools{% if not can_channel_search %} hidden{% endif %}">
+      <p class="muted">Поиск публичных каналов и супергрупп. Отметьте строки и добавьте в мониторинг; ненужные можно отправить в чёрный список (колонка «ЧС») — они перестанут попадать в выдачу. Закрытые чаты в глобальном поиске не появляются.</p>
+      <p class="muted"><strong>Важно:</strong> перед поиском нажмите «Стоп» на странице «Управление» — одна сессия Telegram.</p>
+      <div id="searchTgAccountsBlock" class="panel-sub search-tg-acc-block hidden" style="padding-top:0; padding-bottom:0;"></div>
+
+      <div class="panel-sub">
+        <h3>Чаты из аккаунта</h3>
+        <p class="muted">Все каналы и группы из диалогов выбранного аккаунта (или сразу нескольких, если отмечены чекбоксы выше) добавляются в <code>target_chats</code> (фоновая синхронизация, без глобального поиска; при нескольких аккаунтах список объединяется без дублей).</p>
+        <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center;">
+          <button type="button" id="searchSyncDialogsBtn" class="secondary">Добавить мои чаты в мониторинг</button>
+          <label class="check-row muted search-sync-replace" title="Заменить список мониторинга на список из диалогов (с учётом лимита тарифа)">
+            <input type="checkbox" id="searchSyncReplace" class="checkbox">
+            <span>режим «заменить список»</span>
+          </label>
+        </div>
+        <p id="searchSyncDialogsMsg" class="muted hidden" role="status"></p>
+      </div>
+
+      <div class="panel-sub">
+        <h3>Ключевые слова для поиска</h3>
+        <p class="muted">По одному запросу на строку. Можно вписать вручную или сгенерировать через LLM («Настройки и лимиты» → «Подключения»).</p>
+        <textarea id="searchKeywordsText" class="textarea-sm search-keywords-text" placeholder="маркетинг b2b&#10;клуб владельцев клиник&#10;медцентр москва чат" autocomplete="off" data-persist="search.keywords_text"></textarea>
+        <div class="row search-keywords-toolbar">
+          <label class="muted search-niche-label">Ниша / продукт</label>
+          <input type="text" id="searchNicheDesc" class="search-niche-input" placeholder="Веб-студии, оборудование для HoReCa" autocomplete="off" data-persist="search.niche">
+          <label class="muted" for="searchAudience">Аудитория (опц.)</label>
+          <input type="text" id="searchAudience" class="search-niche-input" placeholder="владельцы, директора" autocomplete="off" data-persist="search.audience">
+        </div>
+        <div class="row search-keywords-toolbar">
+          <label class="muted" for="searchStopWords">Стоп-слова (опц., через запятую)</label>
+          <input type="text" id="searchStopWords" class="search-niche-input" placeholder="бесплатно, вакансии, вакансия" autocomplete="off" data-persist="search.stop_words">
+          <label class="muted" for="searchKeywordsCount">Сколько фраз</label>
+          <input type="number" id="searchKeywordsCount" min="3" max="50" value="15" class="search-count-input" data-persist="search.kw_count">
+          <button type="button" id="generateKeywordsBtn" class="secondary">Сгенерировать ключевые слова</button>
+        </div>
+        <p id="searchLlmHint" class="muted search-llm-hint"></p>
+      </div>
+
+      <div class="panel-sub">
+        <h3>Запуск поиска</h3>
+        <p class="muted search-filters-hint"><strong>Рекомендуем:</strong> <strong>1000</strong> подписчиков и <strong>14</strong> дней без поста.</p>
+        <div class="row search-filters-bar">
+          <div class="search-filter-field">
+            <label class="muted" for="searchMinSub">Мин. подписчиков (0 = выкл.)</label>
+            <input type="number" id="searchMinSub" min="0" max="10000000" value="1000" class="search-count-input" title="Сначала отсев по числу подписчиков из поиска; 0 = не фильтровать" data-persist="search.min_sub">
+            <span class="muted small-hint">рек. 1000</span>
+          </div>
+          <div class="search-filter-field">
+            <label class="muted" for="searchMaxIdle">Макс. дней без нового поста (0 = выкл.)</label>
+            <input type="number" id="searchMaxIdle" min="0" max="365" value="14" class="search-count-input" title="Сравнивается с датой последнего видимого поста; при 14 отсеет давно молчавшие" data-persist="search.max_idle">
+            <span class="muted small-hint">рек. 14</span>
+          </div>
+        </div>
+        <div class="check-col search-filters-checks">
+          <label class="search-check"><input type="checkbox" id="searchIncludeStale" data-persist="search.include_stale" title="Если не отмечено — каналы с постом старше порога в ответ не попадают"> оставлять «слак» в выдаче (не отсекать по дням)</label>
+          <label class="search-check" title="Запрашивать дату последнего поста даже при отключенном пороге по дням — медленнее ~0,12 с на канал"><input type="checkbox" id="searchEnrichOnly" data-persist="search.enrich_only"> дата поста без фильтра (медленнее)</label>
+          <label class="search-check" title="Остаются мегагруппы и каналы с привязанным чатом комментариев; каналы без обсуждения отбрасываются (доп. запросы к Telegram)">
+            <input type="checkbox" id="searchRequireDiscussion" class="checkbox" data-persist="search.require_discussion">
+            только каналы с обсуждением (комментарии)
+          </label>
+        </div>
+        <div class="panel-sub search-via-comments" style="margin-top:10px;">
+          <h3 class="search-via-comments__title">Каналы из комментариев и «о себе»</h3>
+          <p class="muted small-hint">Для каждого канала из выдачи поиска: открыть привязанное обсуждение, взять авторов комментариев, прочитать их профиль и добавить в результаты каналы/чаты по ссылкам в описании (t.me/…, @username). Медленнее и больше запросов к Telegram.</p>
+          <label class="search-check">
+            <input type="checkbox" id="searchViaComments" class="checkbox" data-persist="search.via_comments">
+            Включить обход комментариев и профилей
+          </label>
+          <div class="row search-filters-bar" style="margin-top:8px; flex-wrap:wrap;">
+            <div class="search-filter-field">
+              <label class="muted" for="searchBioKeywords">Слова в «о себе» (через запятую; пусто — все комментаторы)</label>
+              <input type="text" id="searchBioKeywords" class="search-niche-input" placeholder="smm, маркетинг, таргет…" autocomplete="off" style="min-width:220px;" data-persist="search.bio_keywords">
+            </div>
+            <div class="search-filter-field">
+              <label class="muted" for="searchCommentsPerChannel">Сообщений в обсуждении</label>
+              <input type="number" id="searchCommentsPerChannel" min="5" max="100" value="35" class="search-count-input" title="Сколько последних сообщений читать в чате комментариев" data-persist="search.comments_per_channel" />
+            </div>
+            <div class="search-filter-field">
+              <label class="muted" for="searchCommentersPerChannel">Комментаторов с профилем (макс.)</label>
+              <input type="number" id="searchCommentersPerChannel" min="3" max="40" value="12" class="search-count-input" title="Сколько уникальных авторов обрабатывать на один канал" data-persist="search.commenters_per_channel" />
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <label class="muted" for="searchChannelsLimit">Результатов на один запрос</label>
+          <select id="searchChannelsLimit" aria-label="Сколько результатов на запрос" data-persist="search.limit_per_query">
+            <option value="10">До 10</option>
+            <option value="20" selected>До 20</option>
+            <option value="35">До 35</option>
+            <option value="50">До 50</option>
+          </select>
+          <button type="button" id="searchBatchBtn">Искать по всем строкам</button>
+          <button type="button" id="searchStopBtn" class="secondary hidden" title="Прервать текущий пакетный поиск после ответа на текущий запрос">Остановить</button>
+          <button type="button" id="searchClearLocksBtn" class="secondary" title="Снять «висячие» блокировки сессий Telegram, если поиск падает с ‘сессия занята’ после аварийного перезапуска">Снять блокировку сессии</button>
+        </div>
+        <details class="help-details" data-persist="search.help_details_open">
+          <summary>Подробнее о фильтрах и скорости</summary>
+          <p class="muted">Порог по дням требует запроса к каждому каналу; «дата без фильтра» — медленнее (~0,12 с на канал), только для просмотра дат.</p>
+          <p class="muted">По каждой непустой строке — отдельный поиск; дубликаты сливаются. С «1000 + 14 дн.» из сырой выдачи обычно остаётся меньше «живых» каналов.</p>
+          <p class="muted">Блок «Каналы из комментариев» работает только у каналов с включённым обсуждением; без привязанного чата комментариев шаг пропускается. Чекбокс «только каналы с обсуждением» фильтрует всю выдачу (ещё до разворота комментариев).</p>
+        </details>
+        <div class="row">
+          <input type="search" id="searchChannelsQuery" placeholder="Быстрый одиночный запрос" autocomplete="off">
+          <button type="button" id="searchChannelsBtn" class="secondary">Искать один раз</button>
+        </div>
+      </div>
+
+      <div class="panel-sub">
+        <h3>Лог поиска</h3>
+        <pre id="searchLog" class="search-log" aria-live="polite"></pre>
+      </div>
+
+      <p id="searchChannelsError" class="form-error hidden" role="alert"></p>
+      <p id="searchChannelsOk" class="bot-inline-msg bot-inline-msg--ok hidden" role="status"></p>
+
+      <div class="panel-sub">
+        <h3>Результаты</h3>
+        <div class="row search-filter-row">
+          <span class="muted">Показать:</span>
+          <label class="search-radio"><input type="radio" name="searchTypeFilter" value="all" checked data-persist="search.type_filter"> все</label>
+          <label class="search-radio"><input type="radio" name="searchTypeFilter" value="channels" data-persist="search.type_filter"> каналы</label>
+          <label class="search-radio"><input type="radio" name="searchTypeFilter" value="groups" data-persist="search.type_filter"> супергруппы</label>
+        </div>
+        <div class="table-scroll">
+          <div id="searchChannelsTable" class="table hidden"></div>
+        </div>
+        <div class="hidden" id="searchChannelsActions">
+          <div class="check-col search-enroll-options">
+            <p class="muted small-hint">Перед добавлением остановите бота на «Управление», если включено вступление в Telegram.</p>
+            <label class="search-check">
+              <input type="checkbox" id="searchEnrollAutoJoin" class="checkbox" checked data-persist="search.enroll_auto_join">
+              Автовступать в канал
+            </label>
+            <label class="search-check">
+              <input type="checkbox" id="searchEnrollDiscussion" class="checkbox" checked data-persist="search.enroll_discussion">
+              Добавлять чат обсуждения (если у канала включены комментарии)
+            </label>
+            <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center; margin-top:6px;">
+              <label class="muted" for="searchAboutLinks">Ссылки из описания канала</label>
+              <select id="searchAboutLinks" aria-label="Ссылки из описания канала" data-persist="search.about_links">
+                <option value="skip">Не трогать</option>
+                <option value="list" selected>Только отчёт (в ответе сервера)</option>
+                <option value="join">Вступать (+ invite по возможности)</option>
+              </select>
+            </div>
+          </div>
+          <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center;">
+            <button type="button" id="searchChannelsSelectAll" class="secondary">Выбрать все</button>
+            <button type="button" id="searchChannelsSelectNone" class="secondary">Снять все</button>
+            <button type="button" id="searchChannelsCopyAll" class="secondary">Скопировать выдачу</button>
+            <button type="button" id="searchChannelsBlacklistBtn" class="secondary">В ЧС выбранные</button>
+            <button type="button" id="searchChannelsAddBtn">Добавить в мониторинг</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if not can_channel_search %}
+    <p class="muted">Публичный поиск каналов в интерфейсе доступен ролям «Админ» и «Менеджер». Ниже — чаты для мониторинга и импорт из папок Telegram (как раньше на отдельной странице).</p>
+    {% endif %}
+
+    <div id="tg-folders" class="panel-sub search-tg-folders">
+      <h3>Чаты мониторинга и папки Telegram</h3>
+
+      <div class="panel-sub">
+        <h4>Сравнение чатов по аккаунтам</h4>
+        <p class="muted">
+          Каналы и группы из диалогов (без глобального поиска). Остановите бота на странице «Управление».
+          Если отмечено <strong>несколько</strong> аккаунтов — в таблице только <strong>пересечение</strong> (чат есть у каждого в пределах лимита диалогов; один канал сопоставляется по внутреннему id, даже если в диалогах он как @name у одного аккаунта и как −100… у другого). Один аккаунт — полный список из диалогов.
+          Чекбоксы аккаунтов — над «Поиск каналов» или ниже, если поиск недоступен.
+        </p>
+        <div id="dialogsCompareAccountsWrap" class="panel-sub" style="padding-top:0; padding-bottom:0;">
+          <div id="dialogsCompareAccountChecks" class="row" style="flex-wrap:wrap; gap:10px;"></div>
+        </div>
+        <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center;">
+          <label class="muted" for="dialogsCompareLimit">Диалогов на аккаунт (макс.)</label>
+          <input type="number" id="dialogsCompareLimit" class="search-count-input" min="10" max="2000" value="500" title="Сколько последних диалогов просматривать на каждом аккаунте">
+          <button type="button" id="dialogsCompareLoadBtn" class="secondary">Загрузить сравнение</button>
+        </div>
+        <p id="dialogsCompareMsg" class="muted hidden" role="status"></p>
+        <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px;">
+          <input type="search" id="dialogsCompareFilter" class="search-niche-input" placeholder="Фильтр по названию или ref" autocomplete="off" style="min-width:220px;">
+          <button type="button" id="dialogsCompareSelectAll" class="secondary">Выбрать все (в фильтре)</button>
+          <button type="button" id="dialogsCompareSelectNone" class="secondary">Снять все</button>
+        </div>
+        <div class="table-scroll" style="margin-top:10px;">
+          <div id="dialogsCompareTable" class="table hidden"></div>
+        </div>
+        <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px;">
+          <label class="muted" for="dialogsCompareLeaveAccount">Отписаться с аккаунта</label>
+          <select id="dialogsCompareLeaveAccount" aria-label="Аккаунт для отписки" style="min-width:220px">
+            <option value="">Активный (как в настройках)</option>
+          </select>
+          <label class="check-row muted" title="Удалить ref из target_chats, если совпали по нормализации">
+            <input type="checkbox" id="dialogsCompareRemoveMonitoring" class="checkbox">
+            <span>убрать из мониторинга</span>
+          </label>
+          <button type="button" id="dialogsCompareLeaveBtn">Отписаться от выбранных</button>
+        </div>
+      </div>
+
+      <div class="panel-sub">
+        <h4>Список чатов для мониторинга</h4>
+        <p class="muted">Один чат на строку: публичная ссылка вида @имя_канала или числовой id (как в Telegram). Сохраняется в настройках организации.</p>
+        <textarea id="foldersTargetChats" class="textarea-sm" placeholder="@mychat&#10;-1001234567890" autocomplete="off"></textarea>
+        <div class="row">
+          <button id="foldersSaveChatsBtn" type="button">Сохранить список чатов</button>
+        </div>
+      </div>
+      <div class="panel-sub">
+        <h4>Импорт из папок Telegram</h4>
+        <p class="muted">Подтянуть чаты из папки Telegram в тот же список мониторинга (удобно, если каналы уже разложены по папкам в клиенте).</p>
+        <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center;">
+          <label class="muted" for="foldersTgAccount">Аккаунт TG</label>
+          <select id="foldersTgAccount" aria-label="Аккаунт для списка папок" style="min-width:200px">
+            <option value="">Активный (как в настройках)</option>
+          </select>
+        </div>
+        <div class="row" style="flex-wrap:wrap; gap:8px; margin-top:6px;">
+          <button type="button" id="listFoldersBtn" class="secondary">Список папок</button>
+          <input type="text" id="folderName" placeholder="название или id папки" autocomplete="off">
+          <button type="button" id="importFolderBtn">Импорт в список чатов</button>
+        </div>
+        <pre id="foldersOutput"></pre>
+      </div>
+      <div class="panel-sub" id="monitorChatsExcludeWrap">
+        <h4>Все чаты мониторинга</h4>
+        <p class="muted">
+          Список совпадает с полем выше (после сохранения списка чатов нажмите «Обновить список»).
+          Отмеченные чаты <strong>не попадают в результаты</strong> глобального поиска Telegram на этой странице; мониторинг бота при этом не отключается.
+        </p>
+        <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center;">
+          <input type="search" id="monitorChatsFilter" class="search-niche-input" placeholder="Фильтр по @username или id" autocomplete="off" style="min-width:220px;">
+          <button type="button" id="monitorChatsExcludeRefresh" class="secondary">Обновить список</button>
+        </div>
+        <div class="table-scroll" style="margin-top:10px;">
+          <div id="monitorChatsExcludeTable" class="table hidden"></div>
+        </div>
+        <p id="monitorChatsExcludeEmpty" class="muted hidden">Нет чатов в мониторинге — добавьте строки выше и сохраните.</p>
+        <div class="row" style="margin-top:10px;">
+          <button type="button" id="monitorChatsExcludeSave">Сохранить исключения из поиска</button>
+        </div>
+        <p id="monitorChatsExcludeMsg" class="muted hidden" role="status"></p>
+      </div>
+    </div>
+  </section>
+  <script>
+    window.__leadgenCanChannelSearch = {{ can_channel_search | tojson }};
+  </script>
+{% endblock %}

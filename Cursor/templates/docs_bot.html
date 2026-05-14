@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Инструкция: бот и воронка • Leadgen{% endblock %}
+{% block page_id %}docs_bot{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Инструкция: бот и воронка</h2>
+    <p class="muted">Краткий порядок действий после входа в консоль. Технический деплой на VPS: файлы <code>docs/runbook-deploy-by-ip.md</code> и <code>docs/деплой-сервер.md</code> в каталоге проекта.</p>
+
+    <ol class="home-bot-steps muted">
+      <li><strong>Настройки и лимиты</strong> → вкладка «Подключения»: <code>api_id</code> и <code>api_hash</code> с <a class="link" href="https://my.telegram.org" target="_blank" rel="noopener">my.telegram.org</a>, при необходимости LLM. Вкладка «Воронка и лимиты»: ключевые слова, шаблоны этапов 1–3, лимиты и расписание. Для проверки без реальных ЛС включите «тестовый запуск» (dry-run).</li>
+      <li><strong>Код из Telegram</strong> — после нажатия «Старт» на странице бота введите код в левой колонке («Код из Telegram»), он доступен с любой страницы после входа.</li>
+      <li><strong>Поиск каналов</strong> — добавьте чаты в мониторинг или на странице бота используйте «Синхр. чаты из аккаунта».</li>
+      <li><strong>Управление ботом</strong> — старт/стоп, журнал прохода, последние лиды (подсветка триггера, пометка «шлак» хранится в браузере).</li>
+      <li><strong>Лиды</strong> — таблица и выгрузка <code>sent_leads.csv</code>; ссылки на чаты и сообщения в Telegram при наличии данных в журнале.</li>
+      <li><strong>Офферы</strong> — при включённом согласовании черновики этапов попадают в очередь перед отправкой.</li>
+      <li><strong>Переписка / Созвоны</strong> — ответы по лидам и учёт звонков.</li>
+      <li><strong>Лиды по сайтам</strong> — опционально: ключ SerpAPI на <a class="link" href="https://serpapi.com" target="_blank" rel="noopener">serpapi.com</a> для поиска по выдаче.</li>
+    </ol>
+
+    <p class="muted"><a class="link" href="/">← Рабочий стол</a> · <a class="link" href="/tools/contacts/bot">Управление ботом</a></p>
+  </section>
+{% endblock %}

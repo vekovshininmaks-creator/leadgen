@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Безопасность • Leadgen{% endblock %}
+{% block page_id %}security{% endblock %}
+{% block content %}
+  <section class="panel">
+    <h2>Безопасность</h2>
+    <p class="muted">Смена пароля, сессии, журнал входов, двухфакторная аутентификация (TOTP).</p>
+  </section>
+
+  <section class="panel" id="secPassword">
+    <h3>Смена пароля</h3>
+    <p id="secPwdError" class="form-error hidden" role="alert"></p>
+    <div class="row password-row">
+      <div class="password-field">
+        <input id="secCurPwd" type="password" autocomplete="current-password" placeholder="текущий пароль" />
+      </div>
+    </div>
+    <div class="row password-row">
+      <div class="password-field">
+        <input id="secNewPwd" type="password" autocomplete="new-password" placeholder="новый пароль (мин. 12 символов)" minlength="12" />
+        <button type="button" class="secondary pwd-toggle" data-pwd-target="secNewPwd" aria-label="Показать пароль">Показать</button>
+      </div>
+      <button type="button" id="secPwdBtn">Сохранить</button>
+    </div>
+  </section>
+
+  <section class="panel" id="sec2fa">
+    <h3>Двухфакторный вход (TOTP)</h3>
+    <p id="sec2faError" class="form-error hidden" role="alert"></p>
+    <p class="meta" id="sec2faState">—</p>
+    <div class="row">
+      <button type="button" class="secondary" id="sec2faSetupBtn">Сгенерировать QR и секрет</button>
+    </div>
+    <div id="sec2faQrBlock" class="hidden panel-sub">
+      <p class="meta">Сканируйте QR в приложении (Google Authenticator, 1Password и т.д.)</p>
+      <img id="sec2faQr" alt="QR" width="200" height="200" class="sec-qr" />
+      <p class="meta mono" id="sec2faSecret">—</p>
+    </div>
+    <div class="row">
+      <input id="sec2faCode" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-значный код" />
+      <button type="button" id="sec2faConfirmBtn">Включить 2FA</button>
+    </div>
+    <div class="row password-row">
+      <div class="password-field">
+        <input id="sec2faOffPwd" type="password" autocomplete="current-password" placeholder="текущий пароль (для отключения)" />
+      </div>
+      <button type="button" class="secondary" id="sec2faOffBtn">Отключить 2FA</button>
+    </div>
+  </section>
+
+  <section class="panel" id="secSess">
+    <h3>Сессии</h3>
+    <p class="form-error hidden" id="secSessError" role="alert"></p>
+    <ul class="list-plain" id="secSessList"></ul>
+    <button type="button" id="secSessRevoke">Завершить остальные сессии</button>
+  </section>
+
+  <section class="panel" id="secAudit">
+    <h3>Журнал входов (последние)</h3>
+    <p class="form-error hidden" id="secAuditError" role="alert"></p>
+    <ul class="list-plain" id="secAuditList"></ul>
+  </section>
+
+  <section class="panel" id="secData">
+    <h3>Данные аккаунта (152-ФЗ)</h3>
+    <p class="muted">Скачайте копию сведений о профиле. Удаление аккаунта необратимо: войдите под паролем, будут удалены сессии и, если вы были единственным участником организации, данные org на сервере.</p>
+    <div class="row" style="flex-wrap:wrap; gap:10px; align-items:flex-end;">
+      <button type="button" class="secondary" id="secDataExportBtn">Скачать JSON (экспорт)</button>
+    </div>
+    <p class="form-error hidden" id="secDataDeleteError" role="alert"></p>
+    <div class="row password-row" style="margin-top: 12px;">
+      <div class="password-field">
+        <input id="secDataDeletePwd" type="password" autocomplete="current-password" placeholder="пароль для подтверждения удаления" />
+      </div>
+      <button type="button" id="secDataDeleteBtn" class="secondary">Удалить аккаунт навсегда</button>
+    </div>
+  </section>
+{% endblock %}
